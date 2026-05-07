@@ -1015,6 +1015,72 @@ function buildCaption({ address, status, agent, details }) {
   return `${address}\n${status}\n\nEXP Realty and The Jakobov Group proudly presents ${cleanDetails}\n\nExclusively listed by ${agent} and @thejakobovgroup\n\n#arizona #RealEstate #TheJakobovGroup`;
 }
 
+function getBrochureRequestValues() {
+  return {
+    kimEmail: document.querySelector("#brochureKimEmail")?.value.trim() || "",
+    agentName: document.querySelector("#brochureAgentName")?.value.trim() || "",
+    address: document.querySelector("#brochureAddress")?.value.trim() || "",
+    mlsNumber: document.querySelector("#brochureMlsNumber")?.value.trim() || "",
+    mlsLink: document.querySelector("#brochureMlsLink")?.value.trim() || ""
+  };
+}
+
+function buildBrochureRequest() {
+  const values = getBrochureRequestValues();
+  const subject = `Luxury Brochure Request - ${values.address} & MLS# ${values.mlsNumber}`;
+  const body = `Hi Kim,
+
+I hope you're doing well.
+
+We would like to request a custom luxury listing brochure for our new listing. We're looking for a polished, high-end design that aligns with our luxury branding and highlights the property in a premium way.
+
+Please see the details below:
+
+Agent Name: ${values.agentName}
+Address: ${values.address}
+MLS #: ${values.mlsNumber}
+MLS Link: ${values.mlsLink}
+
+Kindly let us know if you need any additional materials such as photos, property descriptions, floor plans, or specific branding elements. We're happy to provide everything needed to move this forward.
+
+Thank you so much, and we're looking forward to seeing the initial draft.`;
+
+  document.querySelector("#brochureSubjectOutput").value = subject;
+  document.querySelector("#brochureBodyOutput").value = body;
+  return { ...values, subject, body };
+}
+
+function validateBrochureRequest(values) {
+  const missing = [];
+  if (!values.agentName) missing.push("agent name");
+  if (!values.address) missing.push("address");
+  if (!values.mlsNumber) missing.push("MLS number");
+  if (!values.mlsLink) missing.push("MLS link");
+  if (missing.length) {
+    showToast(`Add ${missing.join(", ")} first.`);
+    return false;
+  }
+  return true;
+}
+
+function addBrochureWaitingTask(values) {
+  const title = `Watch for Kim brochure reply for ${values.address}`;
+  const exists = state.tasks.some((task) => task.title === title);
+  if (exists) return;
+  state.tasks.unshift({
+    id: crypto.randomUUID ? crypto.randomUUID() : `task-brochure-${Date.now()}`,
+    title,
+    category: "Email Tasks",
+    status: "Waiting for Designer",
+    priority: "High",
+    due: todayISO(),
+    notes: `Luxury brochure requested. Agent: ${values.agentName}. MLS #: ${values.mlsNumber}. MLS link: ${values.mlsLink}`
+  });
+  saveState();
+  renderFocus();
+  renderTasks();
+}
+
 function initControls() {
   fillSelect(document.querySelector("#taskCategory"), categories);
   fillSelect(document.querySelector("#taskStatus"), statuses);
@@ -1241,6 +1307,27 @@ document.addEventListener("DOMContentLoaded", () => {
     const button = event.target.closest("button[data-template]");
     if (!button) return;
     copyText(templates[Number(button.dataset.template)].body);
+  });
+
+  document.querySelector("#buildBrochureRequestBtn").addEventListener("click", () => {
+    const values = buildBrochureRequest();
+    if (validateBrochureRequest(values)) showToast("Luxury brochure request is ready.");
+  });
+
+  document.querySelector("#copyBrochureRequestBtn").addEventListener("click", () => {
+    const values = buildBrochureRequest();
+    if (!validateBrochureRequest(values)) return;
+    copyText(`Subject: ${values.subject}\n\n${values.body}`);
+  });
+
+  document.querySelector("#openBrochureEmailBtn").addEventListener("click", () => {
+    const values = buildBrochureRequest();
+    if (!validateBrochureRequest(values)) return;
+    const composeUrl = new URL("https://mail.google.com/mail/");
+    composeUrl.hash = `view=cm&fs=1&to=${encodeURIComponent(values.kimEmail)}&su=${encodeURIComponent(values.subject)}&body=${encodeURIComponent(values.body)}`;
+    window.open(composeUrl.toString(), "_blank", "noreferrer");
+    addBrochureWaitingTask(values);
+    showToast("Gmail draft opened and waiting task added.");
   });
 
   document.querySelector("#captionForm").addEventListener("submit", (event) => {

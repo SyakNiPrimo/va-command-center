@@ -382,6 +382,28 @@ main {
   gap: 9px;
 }
 
+.brochure-builder {
+  display: grid;
+  gap: 9px;
+  margin-bottom: 10px;
+}
+
+.brochure-form {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.brochure-form .wide {
+  grid-column: span 4;
+}
+
+.brochure-output-label {
+  display: grid;
+}
+
+.brochure-output-label textarea {
+  min-height: 230px;
+}
+
 .table-wrap {
   overflow-x: auto;
   border: 1px solid var(--line);
@@ -749,6 +771,10 @@ pre {
   .task-form .wide {
     grid-column: span 2;
   }
+
+  .brochure-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 620px) {
@@ -766,6 +792,10 @@ pre {
   }
 
   .task-form .wide {
+    grid-column: span 1;
+  }
+
+  .brochure-form .wide {
     grid-column: span 1;
   }
 

@@ -311,6 +311,50 @@
       <div class="section-head">
         <h2>Reusable Message Templates</h2>
       </div>
+      <article class="panel flat brochure-builder">
+        <div class="section-head">
+          <div>
+            <h3>Luxury Brochure Request</h3>
+            <p class="section-note">Answer the required fields, then copy the completed request or open it in Gmail.</p>
+          </div>
+          <div class="button-row">
+            <button id="buildBrochureRequestBtn" type="button">Build Request</button>
+            <button id="copyBrochureRequestBtn" type="button" class="quiet">Copy Template</button>
+            <button id="openBrochureEmailBtn" type="button">Open Gmail Draft</button>
+          </div>
+        </div>
+        <form id="brochureRequestForm" class="task-form brochure-form">
+          <label>
+            Kim email
+            <input id="brochureKimEmail" type="email" placeholder="kim@example.com">
+          </label>
+          <label>
+            Agent name
+            <input id="brochureAgentName" required placeholder="Agent name">
+          </label>
+          <label>
+            Address
+            <input id="brochureAddress" required placeholder="Property address">
+          </label>
+          <label>
+            MLS #
+            <input id="brochureMlsNumber" required placeholder="MLS number">
+          </label>
+          <label class="wide">
+            MLS link
+            <input id="brochureMlsLink" required placeholder="Paste MLS link">
+          </label>
+        </form>
+        <label class="brochure-output-label" for="brochureSubjectOutput">
+          Subject
+          <input id="brochureSubjectOutput" readonly placeholder="Luxury Brochure Request subject will appear here">
+        </label>
+        <label class="brochure-output-label" for="brochureBodyOutput">
+          Email body
+          <textarea id="brochureBodyOutput" readonly placeholder="Completed request will appear here"></textarea>
+        </label>
+        <p class="small-muted">After sending, the app adds a waiting task so you can watch for Kim's brochure reply.</p>
+      </article>
       <div id="templateList" class="cards"></div>
     </section>
 
