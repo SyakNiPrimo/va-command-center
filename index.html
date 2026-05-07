@@ -415,6 +415,49 @@
   </main>
 
   <div id="toast" role="status" aria-live="polite"></div>
+  <div id="socialPostModal" class="modal-backdrop" aria-hidden="true">
+    <section class="modal-panel compact-modal" role="dialog" aria-modal="true" aria-labelledby="socialPostModalTitle">
+      <div class="modal-head">
+        <div>
+          <p class="eyebrow">Listing Social Post</p>
+          <h2 id="socialPostModalTitle">Add Local Task</h2>
+        </div>
+        <button id="closeSocialPostModalBtn" type="button" class="quiet icon-button" aria-label="Close social post task form">x</button>
+      </div>
+      <form id="socialPostForm" class="task-form social-post-form">
+        <label class="wide">
+          Property address
+          <input id="localSocialAddress" required placeholder="Example: 42610 N 22ND ST">
+        </label>
+        <label>
+          Listing type
+          <select id="localSocialListingType">
+            <option>Coming Soon</option>
+            <option selected>New Listing</option>
+            <option>Pending</option>
+            <option>Under Contract</option>
+            <option>Closed</option>
+          </select>
+        </label>
+        <label>
+          Agent name
+          <input id="localSocialAgent" placeholder="Agent name">
+        </label>
+        <label>
+          MLS #
+          <input id="localSocialMls" placeholder="MLS number">
+        </label>
+        <label class="wide">
+          MLS link
+          <input id="localSocialMlsLink" placeholder="Paste MLS link">
+        </label>
+        <div class="modal-actions wide">
+          <button id="cancelSocialPostModalBtn" type="button" class="quiet">Cancel</button>
+          <button type="submit">Save Local Task</button>
+        </div>
+      </form>
+    </section>
+  </div>
   <div id="brochureModal" class="modal-backdrop" aria-hidden="true">
     <section class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="brochureModalTitle">
       <div class="modal-head">

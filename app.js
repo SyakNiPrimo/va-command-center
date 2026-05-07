@@ -1001,21 +1001,36 @@ function fillCaptionBuilderFromSocialPost(post) {
   return caption;
 }
 
-function createLocalSocialPost() {
-  const propertyAddress = window.prompt("Property address?");
-  if (!propertyAddress) return;
-  const listingType = normalizeSocialListingType(window.prompt("Listing type? Coming Soon, New Listing, Pending, Under Contract, or Closed", "New Listing"));
-  const agentName = window.prompt("Agent name?", "") || "";
-  const mlsNumber = window.prompt("MLS number?", "") || "";
-  const mlsLink = window.prompt("MLS link?", "") || "";
+function openLocalSocialPostModal() {
+  const modal = document.querySelector("#socialPostModal");
+  const form = document.querySelector("#socialPostForm");
+  form?.reset();
+  modal?.classList.add("open");
+  modal?.setAttribute("aria-hidden", "false");
+  document.querySelector("#localSocialAddress")?.focus();
+}
+
+function closeLocalSocialPostModal() {
+  const modal = document.querySelector("#socialPostModal");
+  modal?.classList.remove("open");
+  modal?.setAttribute("aria-hidden", "true");
+}
+
+function createLocalSocialPostFromForm() {
+  const propertyAddress = document.querySelector("#localSocialAddress")?.value.trim() || "";
+  if (!propertyAddress) {
+    showToast("Add the property address first.");
+    return;
+  }
+  const listingType = normalizeSocialListingType(document.querySelector("#localSocialListingType")?.value || "New Listing");
   const id = `LOCAL-${Date.now()}`;
   state.socialPosts.unshift({
     id,
     dateReceived: todayArizonaISO(),
-    agentName,
+    agentName: document.querySelector("#localSocialAgent")?.value.trim() || "",
     listingType,
-    mlsNumber,
-    mlsLink,
+    mlsNumber: document.querySelector("#localSocialMls")?.value.trim() || "",
+    mlsLink: document.querySelector("#localSocialMlsLink")?.value.trim() || "",
     propertyAddress,
     duplicateValidation: "Local task added manually",
     statusWorkflow: "Needs Design",
@@ -1029,6 +1044,7 @@ function createLocalSocialPost() {
   });
   saveState();
   renderSocialPosts();
+  closeLocalSocialPostModal();
   showToast("Local social post task added.");
 }
 
@@ -1822,8 +1838,17 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  document.querySelector("#addLocalSocialPostBtn")?.addEventListener("click", createLocalSocialPost);
+  document.querySelector("#addLocalSocialPostBtn")?.addEventListener("click", openLocalSocialPostModal);
 
+  document.querySelector("#closeSocialPostModalBtn")?.addEventListener("click", closeLocalSocialPostModal);
+  document.querySelector("#cancelSocialPostModalBtn")?.addEventListener("click", closeLocalSocialPostModal);
+  document.querySelector("#socialPostModal")?.addEventListener("click", (event) => {
+    if (event.target.id === "socialPostModal") closeLocalSocialPostModal();
+  });
+  document.querySelector("#socialPostForm")?.addEventListener("submit", (event) => {
+    event.preventDefault();
+    createLocalSocialPostFromForm();
+  });
   document.querySelector("#socialPostFilters")?.addEventListener("click", (event) => {
     const button = event.target.closest("button[data-social-filter]");
     if (!button) return;
