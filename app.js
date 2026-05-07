@@ -23,6 +23,7 @@ const priorities = ["Urgent", "High", "Medium", "Low"];
 const attendanceSyncUrl = "https://script.google.com/macros/s/AKfycbzr2BcF1hd9dEx6_dzuw1SZgMF6qppY67Pf4Fh1xJTpwX_DA473GaB5uLkh_u6wl6mPew/exec";
 const brochureEmailSendUrl = "https://script.google.com/macros/s/AKfycbzQvm4KYNm9qkTeXXUzTYbuQlL-6aU5FdIGO172ovZZ-HVZfqxALkoY_vhDiguV4qHdAQ/exec";
 const brochureEmailCc = "ralph@jakobovgroup.com";
+const brochureEmailSignature = "Best,\nBen Tiaga";
 let attendanceSyncTimer = null;
 const canvaVideoTemplate = {
   name: "Social Media Video",
@@ -1100,7 +1101,9 @@ MLS Link: ${values.mlsLink}
 
 Kindly let us know if you need any additional materials such as photos, property descriptions, floor plans, or specific branding elements. We're happy to provide everything needed to move this forward.
 
-Thank you so much, and we're looking forward to seeing the initial draft.`;
+Thank you so much, and we're looking forward to seeing the initial draft.
+
+${brochureEmailSignature}`;
 
   document.querySelector("#brochureSubjectOutput").value = subject;
   document.querySelector("#brochureBodyOutput").value = body;

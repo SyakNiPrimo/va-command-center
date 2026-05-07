@@ -1,5 +1,7 @@
 const DEFAULT_BROCHURE_RECIPIENT = "KLeal@navititle.com";
 const DEFAULT_BROCHURE_CC = "ralph@jakobovgroup.com";
+const DEFAULT_SENDER_NAME = "Ben Tiaga";
+const DEFAULT_EMAIL_SIGNATURE = "Best,\nBen Tiaga";
 
 function doPost(event) {
   let result;
@@ -19,18 +21,22 @@ function sendLuxuryBrochureRequest(payload) {
   const to = String(payload.to || DEFAULT_BROCHURE_RECIPIENT).trim();
   const cc = String(payload.cc || DEFAULT_BROCHURE_CC).trim();
   const subject = String(payload.subject || "").trim();
-  const body = String(payload.body || "").trim();
+  let body = String(payload.body || "").trim();
 
   if (!to) throw new Error("Missing recipient email.");
   if (!subject) throw new Error("Missing email subject.");
   if (!body) throw new Error("Missing email body.");
+
+  if (!body.includes(DEFAULT_EMAIL_SIGNATURE)) {
+    body = `${body}\n\n${DEFAULT_EMAIL_SIGNATURE}`;
+  }
 
   MailApp.sendEmail({
     to,
     cc,
     subject,
     body,
-    name: "The Jakobov Group"
+    name: DEFAULT_SENDER_NAME
   });
 
   return {
