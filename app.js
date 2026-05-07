@@ -1014,7 +1014,7 @@ function showCanvaApiStatus(value) {
 }
 
 function buildCaption({ address, status, agent, details }) {
-  const cleanDetails = details.replace(/[—–-]/g, ",").trim();
+  const cleanDetails = details.replace(/[\u2014\u2013-]/g, ",").trim();
   return `${address}\n${status}\n\nEXP Realty and The Jakobov Group proudly presents ${cleanDetails}\n\nExclusively listed by ${agent} and @thejakobovgroup\n\n#arizona #RealEstate #TheJakobovGroup`;
 }
 
@@ -1033,28 +1033,33 @@ function createBrochureListingRow(listing = {}) {
   row.className = "brochure-listing-row";
   row.dataset.listingId = id;
   row.innerHTML = `
-    <label>
-      Agent name
-      <input data-brochure-field="agentName" required placeholder="Agent name" value="${escapeHTML(listing.agentName || "")}">
-    </label>
-    <label>
-      Address
-      <input data-brochure-field="address" required placeholder="Property address" value="${escapeHTML(listing.address || "")}">
-    </label>
-    <label>
-      MLS #
-      <input data-brochure-field="mlsNumber" required placeholder="MLS number" value="${escapeHTML(listing.mlsNumber || "")}">
-    </label>
-    <label>
-      MLS link
-      <input data-brochure-field="mlsLink" required placeholder="Paste MLS link" value="${escapeHTML(listing.mlsLink || "")}">
-    </label>
-    <label>
-      Price
-      <input data-brochure-field="price" inputmode="decimal" placeholder="$0" value="${escapeHTML(listing.price || "")}">
-      <span class="logo-hint" data-logo-hint>Logo: regular</span>
-    </label>
-    <button class="quiet remove-listing-btn" type="button" data-remove-listing aria-label="Remove listing">x</button>
+    <div class="listing-card-head">
+      <strong>Listing</strong>
+      <button class="quiet remove-listing-btn" type="button" data-remove-listing aria-label="Remove listing">Remove</button>
+    </div>
+    <div class="listing-field-grid">
+      <label>
+        Agent name
+        <input data-brochure-field="agentName" required placeholder="Agent name" value="${escapeHTML(listing.agentName || "")}">
+      </label>
+      <label class="field-wide">
+        Address
+        <input data-brochure-field="address" required placeholder="Property address" value="${escapeHTML(listing.address || "")}">
+      </label>
+      <label>
+        MLS #
+        <input data-brochure-field="mlsNumber" required placeholder="MLS number" value="${escapeHTML(listing.mlsNumber || "")}">
+      </label>
+      <label class="field-wide">
+        MLS link
+        <input data-brochure-field="mlsLink" required placeholder="Paste MLS link" value="${escapeHTML(listing.mlsLink || "")}">
+      </label>
+      <label>
+        Price
+        <input data-brochure-field="price" inputmode="decimal" placeholder="$0" value="${escapeHTML(listing.price || "")}">
+      </label>
+      <div class="logo-hint" data-logo-hint>Logo: EXP regular logo</div>
+    </div>
   `;
   return row;
 }
