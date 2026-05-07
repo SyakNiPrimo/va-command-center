@@ -21,7 +21,7 @@ const statuses = [
 
 const priorities = ["Urgent", "High", "Medium", "Low"];
 const attendanceSyncUrl = "https://script.google.com/macros/s/AKfycbzr2BcF1hd9dEx6_dzuw1SZgMF6qppY67Pf4Fh1xJTpwX_DA473GaB5uLkh_u6wl6mPew/exec";
-const brochureEmailSendUrl = "";
+const brochureEmailSendUrl = "https://script.google.com/macros/s/AKfycbzQvm4KYNm9qkTeXXUzTYbuQlL-6aU5FdIGO172ovZZ-HVZfqxALkoY_vhDiguV4qHdAQ/exec";
 let attendanceSyncTimer = null;
 const canvaVideoTemplate = {
   name: "Social Media Video",
