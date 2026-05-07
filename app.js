@@ -51,8 +51,8 @@ const templates = [
     body: "Hi Ari, quick update for today:\n\nCompleted:\n\nIn progress:\n\nWaiting on:\n\nNeed your approval on:"
   },
   {
-    title: "Graphics Request To Kim",
-    body: "Hi Kim, could you please help create graphics for this listing?\n\nProperty address:\nStatus:\nAgent handle:\nMLS link:\nNeeded graphics:\nCaption ready: Yes or No\nDeadline:"
+    title: "Luxury Brochure Request",
+    body: "Subject: Luxury Brochure Request - <Address & MLS#>\n\nHi Kim,\n\nI hope you're doing well.\n\nWe would like to request a custom luxury listing brochure for our new listing. We're looking for a polished, high-end design that aligns with our luxury branding and highlights the property in a premium way.\n\nPlease see the details below:\n\nAgent Name:\nAddress:\nMLS #:\nMLS Link:\n\nKindly let us know if you need any additional materials such as photos, property descriptions, floor plans, or specific branding elements. We're happy to provide everything needed to move this forward.\n\nThank you so much, and we're looking forward to seeing the initial draft."
   },
   {
     title: "End Of Day Report",
