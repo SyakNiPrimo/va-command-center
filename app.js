@@ -1027,18 +1027,95 @@ function setBrochureStep(step) {
   document.querySelector('[data-step-pill="review"]')?.classList.toggle("active", step === "review");
 }
 
+function createBrochureListingRow(listing = {}) {
+  const id = crypto.randomUUID ? crypto.randomUUID() : `listing-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const row = document.createElement("div");
+  row.className = "brochure-listing-row";
+  row.dataset.listingId = id;
+  row.innerHTML = `
+    <label>
+      Agent name
+      <input data-brochure-field="agentName" required placeholder="Agent name" value="${escapeHTML(listing.agentName || "")}">
+    </label>
+    <label>
+      Address
+      <input data-brochure-field="address" required placeholder="Property address" value="${escapeHTML(listing.address || "")}">
+    </label>
+    <label>
+      MLS #
+      <input data-brochure-field="mlsNumber" required placeholder="MLS number" value="${escapeHTML(listing.mlsNumber || "")}">
+    </label>
+    <label>
+      MLS link
+      <input data-brochure-field="mlsLink" required placeholder="Paste MLS link" value="${escapeHTML(listing.mlsLink || "")}">
+    </label>
+    <label>
+      Price
+      <input data-brochure-field="price" inputmode="decimal" placeholder="$0" value="${escapeHTML(listing.price || "")}">
+      <span class="logo-hint" data-logo-hint>Logo: regular</span>
+    </label>
+    <button class="quiet remove-listing-btn" type="button" data-remove-listing aria-label="Remove listing">x</button>
+  `;
+  return row;
+}
+
+function renderBrochureListingRows() {
+  const container = document.querySelector("#brochureListings");
+  if (!container) return;
+  if (!container.children.length) container.appendChild(createBrochureListingRow());
+  updateBrochureLogoHints();
+}
+
 function openBrochureModal() {
   const modal = document.querySelector("#brochureModal");
   modal?.classList.add("open");
   modal?.setAttribute("aria-hidden", "false");
   setBrochureStep("details");
-  document.querySelector("#brochureAgentName")?.focus();
+  renderBrochureListingRows();
+  document.querySelector("[data-brochure-field=\"agentName\"]")?.focus();
 }
 
 function closeBrochureModal() {
   const modal = document.querySelector("#brochureModal");
   modal?.classList.remove("open");
   modal?.setAttribute("aria-hidden", "true");
+}
+
+function parsePrice(value) {
+  const number = Number(String(value || "").replace(/[^0-9.]/g, ""));
+  return Number.isFinite(number) ? number : 0;
+}
+
+function formatMoney(value) {
+  const number = parsePrice(value);
+  if (!number) return "Not provided";
+  return number.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+}
+
+function getLogoType(price) {
+  return parsePrice(price) >= 1000000 ? "EXP Luxury logo" : "EXP regular logo";
+}
+
+function getBrochureListings() {
+  return Array.from(document.querySelectorAll(".brochure-listing-row")).map((row) => {
+    const field = (name) => row.querySelector(`[data-brochure-field="${name}"]`)?.value.trim() || "";
+    return {
+      agentName: field("agentName"),
+      address: field("address"),
+      mlsNumber: field("mlsNumber"),
+      mlsLink: field("mlsLink"),
+      price: field("price"),
+      logoType: getLogoType(field("price"))
+    };
+  });
+}
+
+function updateBrochureLogoHints() {
+  document.querySelectorAll(".brochure-listing-row").forEach((row) => {
+    const price = row.querySelector('[data-brochure-field="price"]')?.value || "";
+    const hint = row.querySelector("[data-logo-hint]");
+    if (hint) hint.textContent = `Logo: ${getLogoType(price).replace("EXP ", "")}`;
+  });
 }
 
 function getBrochureDraftUrl(values) {
@@ -1062,10 +1139,7 @@ async function sendBrochureRequest(values) {
       cc: brochureEmailCc,
       subject: values.subject,
       body: values.body,
-      address: values.address,
-      agentName: values.agentName,
-      mlsNumber: values.mlsNumber,
-      mlsLink: values.mlsLink
+      listings: values.listings
     })
   });
   const result = await response.json();
@@ -1073,31 +1147,47 @@ async function sendBrochureRequest(values) {
   addBrochureWaitingTask(values);
   return { sent: true, result };
 }
+
 function getBrochureRequestValues() {
+  const listings = getBrochureListings();
   return {
     kimEmail: document.querySelector("#brochureKimEmail")?.value.trim() || "KLeal@navititle.com",
-    agentName: document.querySelector("#brochureAgentName")?.value.trim() || "",
-    address: document.querySelector("#brochureAddress")?.value.trim() || "",
-    mlsNumber: document.querySelector("#brochureMlsNumber")?.value.trim() || "",
-    mlsLink: document.querySelector("#brochureMlsLink")?.value.trim() || ""
+    listings
   };
+}
+
+function getBrochureSubject(values) {
+  if (values.listings.length === 1) {
+    const listing = values.listings[0];
+    return `Luxury Brochure Request - ${listing.address} & MLS# ${listing.mlsNumber}`;
+  }
+  return `Luxury Brochure Request - ${values.listings.length} Listings`;
+}
+
+function getBrochureListingText(listings) {
+  return listings.map((listing, index) => `${index + 1}. Agent Name: ${listing.agentName}
+   Address: ${listing.address}
+   MLS #: ${listing.mlsNumber}
+   MLS Link: ${listing.mlsLink}
+   Price: ${formatMoney(listing.price)}
+   Required logo: ${listing.logoType}`).join("\n\n");
 }
 
 function buildBrochureRequest() {
   const values = getBrochureRequestValues();
-  const subject = `Luxury Brochure Request - ${values.address} & MLS# ${values.mlsNumber}`;
+  const subject = getBrochureSubject(values);
+  const listingWord = values.listings.length > 1 ? "listings" : "listing";
   const body = `Hi Kim,
 
 I hope you're doing well.
 
-We would like to request a custom luxury listing brochure for our new listing. We're looking for a polished, high-end design that aligns with our luxury branding and highlights the property in a premium way.
+We would like to request custom luxury listing brochure support for the following ${listingWord}. We're looking for a polished, high-end design that aligns with our branding and highlights each property in a premium way.
 
 Please see the details below:
 
-Agent Name: ${values.agentName}
-Address: ${values.address}
-MLS #: ${values.mlsNumber}
-MLS Link: ${values.mlsLink}
+${getBrochureListingText(values.listings)}
+
+Logo rule: listings priced at $1,000,000 or more should use the EXP Luxury logo. Listings below $1,000,000 should use the regular EXP logo.
 
 Kindly let us know if you need any additional materials such as photos, property descriptions, floor plans, or specific branding elements. We're happy to provide everything needed to move this forward.
 
@@ -1112,19 +1202,24 @@ ${brochureEmailSignature}`;
 
 function validateBrochureRequest(values) {
   const missing = [];
-  if (!values.agentName) missing.push("agent name");
-  if (!values.address) missing.push("address");
-  if (!values.mlsNumber) missing.push("MLS number");
-  if (!values.mlsLink) missing.push("MLS link");
+  if (!values.listings.length) missing.push("at least one listing");
+  values.listings.forEach((listing, index) => {
+    const label = `listing ${index + 1}`;
+    if (!listing.agentName) missing.push(`${label} agent name`);
+    if (!listing.address) missing.push(`${label} address`);
+    if (!listing.mlsNumber) missing.push(`${label} MLS number`);
+    if (!listing.mlsLink) missing.push(`${label} MLS link`);
+  });
   if (missing.length) {
-    showToast(`Add ${missing.join(", ")} first.`);
+    showToast(`Add ${missing.slice(0, 3).join(", ")}${missing.length > 3 ? "..." : ""} first.`);
     return false;
   }
   return true;
 }
 
 function addBrochureWaitingTask(values) {
-  const title = `Watch for Kim brochure reply for ${values.address}`;
+  const label = values.listings.length === 1 ? values.listings[0].address : `${values.listings.length} listings`;
+  const title = `Watch for Kim brochure reply for ${label}`;
   const exists = state.tasks.some((task) => task.title === title);
   if (exists) return;
   state.tasks.unshift({
@@ -1134,13 +1229,12 @@ function addBrochureWaitingTask(values) {
     status: "Waiting for Designer",
     priority: "High",
     due: todayISO(),
-    notes: `Luxury brochure requested. Agent: ${values.agentName}. MLS #: ${values.mlsNumber}. MLS link: ${values.mlsLink}`
+    notes: `Luxury brochure requested. Listings: ${values.listings.map((listing) => `${listing.agentName}: ${listing.address} (${listing.mlsNumber}, ${listing.logoType})`).join("; ")}`
   });
   saveState();
   renderFocus();
   renderTasks();
 }
-
 function initControls() {
   fillSelect(document.querySelector("#taskCategory"), categories);
   fillSelect(document.querySelector("#taskStatus"), statuses);
@@ -1378,6 +1472,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.querySelector("#brochureModal").addEventListener("click", (event) => {
     if (event.target.id === "brochureModal") closeBrochureModal();
+  });
+
+  document.querySelector("#addBrochureListingBtn").addEventListener("click", () => {
+    document.querySelector("#brochureListings").appendChild(createBrochureListingRow());
+    updateBrochureLogoHints();
+  });
+
+  document.querySelector("#brochureListings").addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-remove-listing]");
+    if (!button) return;
+    const rows = document.querySelectorAll(".brochure-listing-row");
+    if (rows.length <= 1) {
+      showToast("Keep at least one listing in the request.");
+      return;
+    }
+    button.closest(".brochure-listing-row")?.remove();
+  });
+
+  document.querySelector("#brochureListings").addEventListener("input", (event) => {
+    if (event.target.matches('[data-brochure-field="price"]')) updateBrochureLogoHints();
   });
 
   document.querySelector("#reviewBrochureRequestBtn").addEventListener("click", () => {

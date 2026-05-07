@@ -403,22 +403,15 @@
             Kim email
             <input id="brochureKimEmail" type="email" value="KLeal@navititle.com" readonly>
           </label>
-          <label>
-            Agent name
-            <input id="brochureAgentName" required placeholder="Agent name">
-          </label>
-          <label>
-            Address
-            <input id="brochureAddress" required placeholder="Property address">
-          </label>
-          <label>
-            MLS #
-            <input id="brochureMlsNumber" required placeholder="MLS number">
-          </label>
-          <label>
-            MLS link
-            <input id="brochureMlsLink" required placeholder="Paste MLS link">
-          </label>
+
+          <div class="brochure-listing-toolbar">
+            <div>
+              <strong>Listings</strong>
+              <p class="small-muted">Add one or more listings. Each listing can have its own agent. $1,000,000 or more uses the EXP Luxury logo.</p>
+            </div>
+            <button id="addBrochureListingBtn" type="button" class="quiet">Add Listing</button>
+          </div>
+          <div id="brochureListings" class="brochure-listings"></div>
           <div class="modal-actions">
             <button id="reviewBrochureRequestBtn" type="button">Review Request</button>
           </div>
