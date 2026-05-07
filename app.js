@@ -21,6 +21,7 @@ const statuses = [
 
 const priorities = ["Urgent", "High", "Medium", "Low"];
 const attendanceSyncUrl = "https://script.google.com/macros/s/AKfycbzr2BcF1hd9dEx6_dzuw1SZgMF6qppY67Pf4Fh1xJTpwX_DA473GaB5uLkh_u6wl6mPew/exec";
+const brochureEmailSendUrl = "";
 let attendanceSyncTimer = null;
 const canvaVideoTemplate = {
   name: "Social Media Video",
@@ -1015,9 +1016,63 @@ function buildCaption({ address, status, agent, details }) {
   return `${address}\n${status}\n\nEXP Realty and The Jakobov Group proudly presents ${cleanDetails}\n\nExclusively listed by ${agent} and @thejakobovgroup\n\n#arizona #RealEstate #TheJakobovGroup`;
 }
 
+function setBrochureStep(step) {
+  const details = document.querySelector("#brochureDetailsStep");
+  const review = document.querySelector("#brochureReviewStep");
+  details?.classList.toggle("active", step === "details");
+  review?.classList.toggle("active", step === "review");
+  document.querySelector('[data-step-pill="details"]')?.classList.toggle("active", step === "details");
+  document.querySelector('[data-step-pill="review"]')?.classList.toggle("active", step === "review");
+}
+
+function openBrochureModal() {
+  const modal = document.querySelector("#brochureModal");
+  modal?.classList.add("open");
+  modal?.setAttribute("aria-hidden", "false");
+  setBrochureStep("details");
+  document.querySelector("#brochureAgentName")?.focus();
+}
+
+function closeBrochureModal() {
+  const modal = document.querySelector("#brochureModal");
+  modal?.classList.remove("open");
+  modal?.setAttribute("aria-hidden", "true");
+}
+
+function getBrochureDraftUrl(values) {
+  const composeUrl = new URL("https://mail.google.com/mail/");
+  composeUrl.hash = `view=cm&fs=1&to=${encodeURIComponent(values.kimEmail)}&su=${encodeURIComponent(values.subject)}&body=${encodeURIComponent(values.body)}`;
+  return composeUrl.toString();
+}
+
+async function sendBrochureRequest(values) {
+  if (!brochureEmailSendUrl) {
+    window.open(getBrochureDraftUrl(values), "_blank", "noreferrer");
+    addBrochureWaitingTask(values);
+    return { sent: false, fallback: true };
+  }
+
+  const response = await fetch(brochureEmailSendUrl, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify({
+      to: values.kimEmail,
+      subject: values.subject,
+      body: values.body,
+      address: values.address,
+      agentName: values.agentName,
+      mlsNumber: values.mlsNumber,
+      mlsLink: values.mlsLink
+    })
+  });
+  const result = await response.json();
+  if (!response.ok || !result.ok) throw new Error(result.error || "Email send failed.");
+  addBrochureWaitingTask(values);
+  return { sent: true, result };
+}
 function getBrochureRequestValues() {
   return {
-    kimEmail: document.querySelector("#brochureKimEmail")?.value.trim() || "",
+    kimEmail: document.querySelector("#brochureKimEmail")?.value.trim() || "KLeal@navititle.com",
     agentName: document.querySelector("#brochureAgentName")?.value.trim() || "",
     address: document.querySelector("#brochureAddress")?.value.trim() || "",
     mlsNumber: document.querySelector("#brochureMlsNumber")?.value.trim() || "",
@@ -1309,9 +1364,26 @@ document.addEventListener("DOMContentLoaded", () => {
     copyText(templates[Number(button.dataset.template)].body);
   });
 
-  document.querySelector("#buildBrochureRequestBtn").addEventListener("click", () => {
+  document.querySelector("#openBrochureModalBtn").addEventListener("click", (event) => {
+    event.preventDefault();
+    openBrochureModal();
+  });
+
+  document.querySelector("#closeBrochureModalBtn").addEventListener("click", closeBrochureModal);
+
+  document.querySelector("#brochureModal").addEventListener("click", (event) => {
+    if (event.target.id === "brochureModal") closeBrochureModal();
+  });
+
+  document.querySelector("#reviewBrochureRequestBtn").addEventListener("click", () => {
     const values = buildBrochureRequest();
-    if (validateBrochureRequest(values)) showToast("Luxury brochure request is ready.");
+    if (!validateBrochureRequest(values)) return;
+    document.querySelector("#brochureSendStatus").textContent = "Review everything before sending. Use Edit Details if anything needs fixing.";
+    setBrochureStep("review");
+  });
+
+  document.querySelector("#editBrochureRequestBtn").addEventListener("click", () => {
+    setBrochureStep("details");
   });
 
   document.querySelector("#copyBrochureRequestBtn").addEventListener("click", () => {
@@ -1320,14 +1392,27 @@ document.addEventListener("DOMContentLoaded", () => {
     copyText(`Subject: ${values.subject}\n\n${values.body}`);
   });
 
-  document.querySelector("#openBrochureEmailBtn").addEventListener("click", () => {
+  document.querySelector("#confirmSendBrochureBtn").addEventListener("click", async () => {
     const values = buildBrochureRequest();
     if (!validateBrochureRequest(values)) return;
-    const composeUrl = new URL("https://mail.google.com/mail/");
-    composeUrl.hash = `view=cm&fs=1&to=${encodeURIComponent(values.kimEmail)}&su=${encodeURIComponent(values.subject)}&body=${encodeURIComponent(values.body)}`;
-    window.open(composeUrl.toString(), "_blank", "noreferrer");
-    addBrochureWaitingTask(values);
-    showToast("Gmail draft opened and waiting task added.");
+    const status = document.querySelector("#brochureSendStatus");
+    status.textContent = "Sending request...";
+    try {
+      const result = await sendBrochureRequest(values);
+      if (result.fallback) {
+        status.textContent = "Gmail draft opened. Review it, then click Send in Gmail. A waiting task was added.";
+        showToast("Gmail draft opened and waiting task added.");
+      } else {
+        status.textContent = "Request sent to Kim and waiting task added.";
+        showToast("Luxury brochure request sent to Kim.");
+        closeBrochureModal();
+      }
+      renderFocus();
+      renderTasks();
+    } catch (error) {
+      status.textContent = `Could not send automatically. ${error.message}`;
+      showToast("Brochure request send failed.");
+    }
   });
 
   document.querySelector("#captionForm").addEventListener("submit", (event) => {

@@ -382,26 +382,117 @@ main {
   gap: 9px;
 }
 
-.brochure-builder {
+.quick-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 10px;
+}
+
+.quick-actions strong {
+  display: block;
+  font-size: 0.98rem;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: none;
+  place-items: center;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.55);
+}
+
+.modal-backdrop.open {
   display: grid;
-  gap: 9px;
-  margin-bottom: 10px;
 }
 
-.brochure-form {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+.modal-panel {
+  width: min(720px, 100%);
+  max-height: min(88vh, 820px);
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+  padding: 14px;
 }
 
-.brochure-form .wide {
-  grid-column: span 4;
+.modal-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 12px;
 }
 
-.brochure-output-label {
+.modal-head h2 {
+  margin: 0;
+}
+
+.icon-button {
+  width: 34px;
+  height: 34px;
+  padding: 0;
+}
+
+.stepper {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.step-pill {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 0.28rem 0.55rem;
+  background: #f8fbfd;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.step-pill.active {
+  border-color: #b7d7cf;
+  background: #edf7f6;
+  color: var(--accent-dark);
+}
+
+.brochure-modal-form,
+.modal-step {
+  display: grid;
+  gap: 10px;
+}
+
+.modal-step {
+  display: none;
+}
+
+.modal-step.active {
   display: grid;
 }
 
-.brochure-output-label textarea {
-  min-height: 230px;
+.modal-step textarea {
+  min-height: 250px;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.send-status {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fbfd;
+  color: var(--muted);
+  padding: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
 }
 
 .table-wrap {
@@ -772,9 +863,6 @@ pre {
     grid-column: span 2;
   }
 
-  .brochure-form {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
 }
 
 @media (max-width: 620px) {
@@ -785,6 +873,7 @@ pre {
   .task-form,
   .compact-form,
   .filters,
+  .quick-actions,
   .section-head {
     grid-template-columns: 1fr;
     flex-direction: column;
@@ -795,9 +884,6 @@ pre {
     grid-column: span 1;
   }
 
-  .brochure-form .wide {
-    grid-column: span 1;
-  }
 
   .topbar h1 {
     font-size: 1.5rem;

@@ -220,3 +220,16 @@ npx serve .
 3. Add a weekly report generator.
 4. Add Google Sheets sync for shared visibility.
 5. Add calendar based reminders for weekly compliance checks.
+
+## Luxury Brochure Request Email Sending
+
+The dashboard has a main-page **Luxury Brochure Request** button that opens a guided popup:
+
+1. Enter agent name, address, MLS number, and MLS link.
+2. Review the completed email.
+3. Use Edit Details if anything needs correction.
+4. Click Confirm And Send.
+
+Kim's default email is `KLeal@navititle.com`.
+
+For true one-click sending from GitHub Pages, deploy `brochure-email-apps-script.js` as a Google Apps Script web app and paste the web app URL into `brochureEmailSendUrl` in `app.js`. Until that URL is connected, Confirm And Send opens a prefilled Gmail draft and adds a waiting task for Kim's brochure reply.
