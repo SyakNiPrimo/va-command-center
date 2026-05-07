@@ -1,0 +1,380 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ari VA Daily Work Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div>
+      <p class="eyebrow">The Jakobov Group VA Operations</p>
+      <h1>VA Command Center</h1>
+      <p class="topbar-subtitle">Meetings, attendance, tasks, social, and follow ups in one clean daily view.</p>
+    </div>
+    <div class="today-card">
+      <span id="todayLabel">Today</span>
+      <strong id="meetingType">Daily Team Meeting</strong>
+      <button id="copyMeetingBtn" type="button">Copy Message</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="focus-grid" aria-label="Daily focus">
+      <article class="panel meeting-panel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Morning Reminder</p>
+            <h2 id="meetingTitle">Morning Zoom</h2>
+          </div>
+          <div class="pill-stack">
+            <span class="time-pill" id="meetingTime">8:30 AM AZ</span>
+            <span class="time-pill" id="whatsappReminderStatus">Upcoming</span>
+          </div>
+        </div>
+        <p id="meetingDescription"></p>
+        <p id="whatsappReminderText">The dashboard will highlight this 15 minutes before the meeting while it is open.</p>
+        <details class="message-details">
+          <summary>View message</summary>
+          <label for="meetingMessage">WhatsApp message</label>
+          <textarea id="meetingMessage" readonly></textarea>
+        </details>
+        <div class="button-row">
+          <button id="copyWhatsappBtn" type="button">Copy For WhatsApp</button>
+          <button id="markWhatsappSent" type="button" class="quiet">Mark WhatsApp Sent</button>
+          <button id="resetDailyBtn" type="button" class="quiet">New Day Reset</button>
+        </div>
+      </article>
+
+      <article class="panel focus-panel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">Daily Focus View</p>
+            <h2>Top 3 Must Finish</h2>
+          </div>
+        </div>
+        <ol id="topTasks" class="task-stack"></ol>
+        <hr class="soft-line">
+        <h3>Waiting For Replies</h3>
+        <ul id="waitingList" class="plain-list"></ul>
+      </article>
+    </section>
+
+    <details class="panel add-panel capture-panel" aria-label="Add work item">
+      <summary>
+        <span>
+          <span class="eyebrow">Quick Capture</span>
+          <strong>Add a Task</strong>
+        </span>
+        <span class="summary-hint">Open when you need to capture new work</span>
+      </summary>
+      <form id="taskForm" class="task-form">
+        <label>
+          Task
+          <input id="taskTitle" required placeholder="Example: Send Kim graphics request for 123 Main St">
+        </label>
+        <label>
+          Category
+          <select id="taskCategory"></select>
+        </label>
+        <label>
+          Status
+          <select id="taskStatus"></select>
+        </label>
+        <label>
+          Priority
+          <select id="taskPriority"></select>
+        </label>
+        <label>
+          Due date
+          <input id="taskDue" type="date">
+        </label>
+        <label class="wide">
+          Notes
+          <input id="taskNotes" placeholder="Approval, link, person waiting on, or next step">
+        </label>
+        <button type="submit">Add Task</button>
+      </form>
+    </details>
+
+    <section class="tabs" aria-label="Dashboard sections">
+      <button class="tab active" data-tab="tasks" type="button">Tasks</button>
+      <button class="tab" data-tab="sync" type="button">Google Sync</button>
+      <button class="tab" data-tab="attendance" type="button">Attendance</button>
+      <button class="tab" data-tab="social" type="button">Social</button>
+      <button class="tab" data-tab="compliance" type="button">Compliance</button>
+      <button class="tab" data-tab="eod" type="button">EOD Report</button>
+      <button class="tab" data-tab="templates" type="button">Templates</button>
+      <button class="tab" data-tab="automations" type="button">Guide</button>
+      <button class="tab" data-tab="structure" type="button">Setup</button>
+    </section>
+
+    <section id="tasks" class="tab-panel active">
+      <div class="section-head">
+        <h2>Work Queue</h2>
+        <div class="filters">
+          <select id="categoryFilter" aria-label="Filter by category">
+            <option value="All">All Categories</option>
+          </select>
+          <select id="statusFilter" aria-label="Filter by status">
+            <option value="All">All Statuses</option>
+          </select>
+        </div>
+      </div>
+      <div id="taskList" class="table-wrap"></div>
+    </section>
+
+    <section id="sync" class="tab-panel">
+      <div class="section-head">
+        <div>
+          <h2>Google Sync Snapshot</h2>
+          <p class="section-note" id="syncUpdated">Gmail, Calendar, and Drive items pulled through Codex connectors.</p>
+        </div>
+        <button id="importSyncTasksBtn" type="button">Add Suggested Tasks</button>
+      </div>
+      <div class="sync-summary" id="syncSummary"></div>
+      <div class="two-column">
+        <article class="panel flat">
+          <h3>Inbox Items</h3>
+          <div id="syncEmails" class="sync-list"></div>
+        </article>
+        <article class="panel flat">
+          <h3>Upcoming Calendar</h3>
+          <div id="syncEvents" class="sync-list"></div>
+        </article>
+      </div>
+      <article class="panel flat sync-drive-panel">
+        <h3>Recent Drive Files</h3>
+        <div id="syncDrive" class="sync-list drive-list"></div>
+      </article>
+    </section>
+
+    <section id="attendance" class="tab-panel">
+      <div class="section-head">
+        <div>
+          <h2>Morning Zoom Attendance</h2>
+          <p class="section-note">Select the meeting date and tick Zoom or Office attendance. Auto sync works after the Apps Script URL is connected.</p>
+        </div>
+        <div class="button-row">
+          <button id="addAttendanceSessionBtn" type="button">Load Date</button>
+          <button id="syncAttendanceBtn" type="button" class="quiet">Sync To Task Tracker</button>
+        </div>
+      </div>
+      <div class="attendance-toolbar">
+        <label>
+          Attendance date
+          <input id="attendanceDate" type="date">
+        </label>
+        <p class="small-muted">Google Sheet: <a href="https://docs.google.com/spreadsheets/d/1nmdNyzfdG7V3guU7BmghtTaujAun7TDkRyK5WefTJ04/edit?usp=sharing" target="_blank" rel="noreferrer">Task Tracker</a></p>
+        <p class="small-muted" id="attendanceSyncStatus">Sync status: local only until the Apps Script URL is added.</p>
+      </div>
+      <form id="agentForm" class="task-form compact-form compact-hidden">
+        <label>
+          Agent name
+          <input id="agentName" required placeholder="Example: Ralph">
+        </label>
+        <label>
+          Instagram or note
+          <input id="agentNote" placeholder="@handle, team role, or note">
+        </label>
+        <button type="submit">Add Agent</button>
+      </form>
+      <div id="attendanceSessions" class="table-wrap"></div>
+    </section>
+
+    <section id="social" class="tab-panel">
+      <div class="section-head">
+        <h2>Social Media Management</h2>
+      </div>
+      <div class="two-column">
+        <article class="panel flat">
+          <h3>Post Rules</h3>
+          <ul class="checklist">
+            <li>No hyphens or em dashes in captions.</li>
+            <li>Use a maximum of 5 hashtags.</li>
+            <li>For real estate posts, caption comes before image notes.</li>
+            <li>Full property address goes on the first line.</li>
+            <li>Property status starts in all caps.</li>
+            <li>Use “Exclusively listed by” with only the agent handle and @thejakobovgroup.</li>
+            <li>Add “EXP Realty and The Jakobov Group” at the beginning when needed.</li>
+            <li>Required hashtags: #arizona #RealEstate #TheJakobovGroup.</li>
+            <li>Create a short Canva video for listing posts when requested.</li>
+            <li>Export the Canva video as MP4 before posting.</li>
+          </ul>
+        </article>
+        <article class="panel flat">
+          <h3>Caption Builder</h3>
+          <form id="captionForm" class="stack-form">
+            <input id="captionAddress" placeholder="Full property address">
+            <select id="captionStatus">
+              <option>COMING SOON</option>
+              <option>NEW LISTING</option>
+              <option>PENDING</option>
+              <option>UNDER CONTRACT</option>
+              <option>CLOSED</option>
+            </select>
+            <input id="captionAgent" placeholder="@agenthandle">
+            <textarea id="captionDetails" placeholder="Luxury description, key features, beds, baths, square footage"></textarea>
+            <button type="submit">Build Caption</button>
+          </form>
+          <textarea id="captionOutput" readonly placeholder="Your caption will appear here"></textarea>
+        </article>
+      </div>
+      <article class="panel flat social-video-panel">
+        <div class="section-head">
+          <div>
+            <h3>Canva Short Video Workflow</h3>
+            <p class="section-note">Track the short MP4 video made in Canva along with the caption.</p>
+          </div>
+          <div class="button-row">
+            <a id="openVideoTemplateLink" class="button-link" href="#" target="_blank" rel="noreferrer">Open Template</a>
+            <button id="useVideoTemplateBtn" type="button">Use Template</button>
+            <button id="addVideoTaskBtn" type="button">Add Video Task</button>
+          </div>
+        </div>
+        <form id="videoTaskForm" class="task-form video-task-form">
+          <label>
+            Property address
+            <input id="videoAddress" placeholder="Example: 42610 N 22ND ST">
+          </label>
+          <label>
+            Canva link
+            <input id="videoCanvaLink" placeholder="Paste Canva design link">
+          </label>
+          <label>
+            Video file
+            <input id="videoFileName" placeholder="Example: 42610 N 22ND ST.mp4">
+          </label>
+          <label>
+            Video status
+            <select id="videoStatus">
+              <option>Needs Canva Video</option>
+              <option>In Canva</option>
+              <option>Exported MP4</option>
+              <option>Ready To Post</option>
+              <option>Posted</option>
+            </select>
+          </label>
+        </form>
+        <div id="videoTaskList" class="table-wrap"></div>
+      </article>
+      <article class="panel flat canva-api-panel">
+        <div class="section-head">
+          <div>
+            <h3>Canva API Setup</h3>
+            <p class="section-note">Connect Canva and export the Social Media Video template as MP4.</p>
+          </div>
+          <div class="button-row">
+            <button id="checkCanvaApiBtn" type="button">Check Canva API</button>
+            <a class="button-link" href="http://127.0.0.1:8787/canva/login" target="_blank" rel="noreferrer">Connect Canva</a>
+            <button id="exportCanvaVideoBtn" type="button">Export MP4</button>
+          </div>
+        </div>
+        <pre id="canvaApiStatus" class="api-status">Canva API not checked yet.</pre>
+      </article>
+      <article class="panel flat photo-prep-panel">
+        <div class="section-head">
+          <div>
+            <h3>Instagram Photo Prep</h3>
+            <p class="section-note">Turn listing photos into 1080 x 1350 Instagram images with a blurred background.</p>
+          </div>
+          <button id="generatePhotoPrepBtn" type="button">Generate All</button>
+        </div>
+        <div id="photoPrepSlots" class="photo-prep-grid"></div>
+      </article>
+    </section>
+
+    <section id="compliance" class="tab-panel">
+      <div class="section-head">
+        <h2>Weekly Compliance Check</h2>
+        <button id="resetComplianceBtn" type="button">Reset Checklist</button>
+      </div>
+      <div id="complianceList" class="check-grid"></div>
+    </section>
+
+    <section id="eod" class="tab-panel">
+      <div class="section-head">
+        <div>
+          <h2>End Of Day Report</h2>
+          <p class="section-note">Generated from completed, active, waiting, and attendance items saved in this dashboard.</p>
+        </div>
+        <div class="button-row">
+          <button id="refreshEodBtn" type="button">Regenerate</button>
+          <button id="copyEodBtn" type="button" class="quiet">Copy Report</button>
+        </div>
+      </div>
+      <textarea id="eodReport" class="report-output" readonly></textarea>
+    </section>
+
+    <section id="templates" class="tab-panel">
+      <div class="section-head">
+        <h2>Reusable Message Templates</h2>
+      </div>
+      <div id="templateList" class="cards"></div>
+    </section>
+
+    <section id="automations" class="tab-panel">
+      <div class="section-head">
+        <h2>Automation Ideas</h2>
+      </div>
+      <div class="two-column">
+        <article class="panel flat">
+          <h3>Simple Automations To Add Later</h3>
+          <ul class="plain-list">
+            <li>Daily meeting message reminder at 8:15 AM Arizona time except Tuesday.</li>
+            <li>Tuesday Bowers Weekly Zoom reminder at 7:45 AM Arizona time.</li>
+            <li>Read.ai reminder to paste the morning Zoom link: https://us06web.zoom.us/j/7251527919.</li>
+            <li>Daily end of day report generated from completed tasks.</li>
+            <li>Weekly compliance checklist every Friday afternoon.</li>
+            <li>Social media backlog review for posts from December 13, 2025 to present.</li>
+            <li>Social post task reminder when caption, image, or compliance is not complete.</li>
+            <li>Email follow up reminder for approvals, vendors, and graphics requests.</li>
+          </ul>
+        </article>
+        <article class="panel flat">
+          <h3>Daily Workflow Logic</h3>
+          <ol class="plain-list numbered">
+            <li>Open dashboard and copy the correct meeting message.</li>
+            <li>Check Top 3 Must Finish Tasks.</li>
+            <li>Clear urgent email, social, attendance, and admin items.</li>
+            <li>Move waiting items to the correct waiting status.</li>
+            <li>Mark completed work before ending the day.</li>
+            <li>Use completed items to send Ari a short end of day report.</li>
+          </ol>
+        </article>
+      </div>
+    </section>
+
+    <section id="structure" class="tab-panel">
+      <div class="section-head">
+        <h2>App Structure And Data Model</h2>
+      </div>
+      <div class="two-column">
+        <article class="panel flat">
+          <h3>Recommended Storage</h3>
+          <p>This version uses browser local storage for speed and simplicity. Later, the same fields can move into Google Sheets, Airtable, Notion, or Firebase if you want multi device sync.</p>
+          <pre><code>{
+  tasks: [],
+  compliance: [],
+  dailyState: {
+    date: "YYYY-MM-DD",
+    meetingSent: true,
+    whatsappSent: true
+  },
+  agents: [],
+  attendanceSessions: []
+}</code></pre>
+        </article>
+        <article class="panel flat">
+          <h3>Task Categories</h3>
+          <div id="categoryChips" class="chips"></div>
+        </article>
+      </div>
+    </section>
+  </main>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
