@@ -5,3 +5,4 @@ exports/
 canva-server*.log
 video-frames/
 photo-prep-check.png
+caption_local.env

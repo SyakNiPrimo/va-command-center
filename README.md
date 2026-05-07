@@ -233,3 +233,29 @@ The dashboard has a main-page **Luxury Brochure Request** button that opens a gu
 Kim's default email is `KLeal@navititle.com`.
 
 For true one-click sending from GitHub Pages, deploy `brochure-email-apps-script.js` as a Google Apps Script web app and paste the web app URL into `brochureEmailSendUrl` in `app.js`. Until that URL is connected, Confirm And Send opens a prefilled Gmail draft and adds a waiting task for Kim's brochure reply.
+## Listing Social Media Automation
+
+The Social tab now supports the listing workflow from MLS email intake through manual Instagram posting.
+
+Workflow:
+
+1. Gmail listing status email is labeled `Listing Updates`.
+2. `gmail-listing-sync-apps-script.js` parses the email and adds a row to `Social Post Tasks`.
+3. The app syncs active rows with **Sync Social Posts**.
+4. Each listing card tracks price, logo type, agent confirmations, Canva video, 6 prepared photos, caption, WhatsApp handoff, and final IG link.
+5. Posting stays manual on the phone so music and compliance can be reviewed before publishing.
+6. Paste the IG link and click **Mark Posted** to complete the task.
+
+Google Apps Script files:
+
+- `social-posts-sync-apps-script.js` reads and updates the `Social Post Tasks` sheet tab.
+- `gmail-listing-sync-apps-script.js` scans Gmail label `Listing Updates`, avoids duplicates, and creates new listing tasks.
+
+Caption server setup:
+
+1. Copy `caption_local.env.example` to `caption_local.env`.
+2. Add `OPENAI_API_KEY` to `caption_local.env`.
+3. Run `run_caption_server.ps1` or double click `start_caption_api_server.cmd`.
+4. Keep the server window open while using **Generate Caption** in the Social tab.
+
+The OpenAI API key is never stored in frontend files.

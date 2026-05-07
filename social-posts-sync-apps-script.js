@@ -21,14 +21,27 @@ const REQUIRED_HEADERS = [
   "MLS#",
   "MLS Link",
   "Property Address",
+  "Price",
+  "Bedrooms",
+  "Bathrooms",
+  "Approximate Square Feet",
+  "MLS Description",
   "Duplicate Validation",
   "Status (Workflow)",
+  "Logo Type",
+  "Agent Photo Confirmed",
+  "Agent Name Confirmed",
+  "Agent Phone Confirmed",
+  "Agent Email Confirmed",
+  "Agent Instagram Handle",
   "Subject",
   "Email Template",
+  "Canva Video Link",
   "Graphics Created?",
   "Posted",
   "Date Posted",
   "Graphics Link",
+  "Caption",
   "IG Post Link"
 ];
 
@@ -46,7 +59,20 @@ const UPDATE_HEADERS = [
   "Date Posted",
   "IG Post Link",
   "Status (Workflow)",
-  "Duplicate Validation"
+  "Duplicate Validation",
+  "Price",
+  "Bedrooms",
+  "Bathrooms",
+  "Approximate Square Feet",
+  "MLS Description",
+  "Logo Type",
+  "Agent Photo Confirmed",
+  "Agent Name Confirmed",
+  "Agent Phone Confirmed",
+  "Agent Email Confirmed",
+  "Agent Instagram Handle",
+  "Canva Video Link",
+  "Caption"
 ];
 
 function doGet(event) {
@@ -171,7 +197,20 @@ function normalizeUpdates(source) {
     datePosted: "Date Posted",
     igPostLink: "IG Post Link",
     statusWorkflow: "Status (Workflow)",
-    duplicateValidation: "Duplicate Validation"
+    duplicateValidation: "Duplicate Validation",
+    price: "Price",
+    bedrooms: "Bedrooms",
+    bathrooms: "Bathrooms",
+    squareFeet: "Approximate Square Feet",
+    mlsDescription: "MLS Description",
+    logoType: "Logo Type",
+    agentPhotoConfirmed: "Agent Photo Confirmed",
+    agentNameConfirmed: "Agent Name Confirmed",
+    agentPhoneConfirmed: "Agent Phone Confirmed",
+    agentEmailConfirmed: "Agent Email Confirmed",
+    agentInstagramHandle: "Agent Instagram Handle",
+    canvaVideoLink: "Canva Video Link",
+    caption: "Caption"
   };
 
   const updates = {};

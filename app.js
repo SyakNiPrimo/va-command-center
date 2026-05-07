@@ -49,11 +49,40 @@ const socialPostFilters = [
   "Closed",
   "New",
   "Needs Design",
+  "Design Done",
+  "Needs Photos",
+  "Photos Selected",
+  "Photo Prep Ready",
   "Needs Caption",
-  "Ready To Post",
+  "Caption Ready",
+  "Ready To Send To WhatsApp",
+  "Posted",
   "Duplicate"
 ];
-const socialWorkflowStatuses = ["New", "Needs Design", "Needs Caption", "Ready To Post", "Posted", "Completed", "Duplicate or Cancelled"];
+const socialWorkflowStatuses = [
+  "New",
+  "Needs Design",
+  "Design Done",
+  "Needs Photos",
+  "Photos Selected",
+  "Photo Prep Ready",
+  "Needs Caption",
+  "Caption Ready",
+  "Ready To Send To WhatsApp",
+  "Posted",
+  "Completed",
+  "Canceled",
+  "Duplicate or Cancelled"
+];
+const socialPhotoSlots = [
+  "Living Room",
+  "Kitchen",
+  "Dining",
+  "Bedroom",
+  "Bathroom",
+  "Exterior Yard or Best Feature"
+];
+const captionServerUrl = "http://127.0.0.1:8791/generate-caption";
 let activeSocialPostFilter = "All";
 let socialPostSearchTerm = "";
 
@@ -314,6 +343,7 @@ function loadState() {
     agents: seedAgents,
     attendanceSessions: [],
     socialPosts: [],
+    agentProfiles: {},
     videoTasks: seedVideoTasks
   };
 }
@@ -368,6 +398,7 @@ function showToast(message) {
 
 function setDailyState() {
   if (!Array.isArray(state.socialPosts)) state.socialPosts = [];
+  if (!state.agentProfiles) state.agentProfiles = {};
   state.tasks = state.tasks.filter((task) => task.category !== "Follow Up Boss");
   const readAiTaskExists = state.tasks.some((task) => task.title === "Paste morning Zoom link into Read.ai");
   if (!readAiTaskExists) {
@@ -824,6 +855,36 @@ function setSocialPostSyncStatus(message) {
   if (status) status.textContent = message;
 }
 
+function parseMoneyValue(value) {
+  const number = Number(String(value || "").replace(/[^0-9.]/g, ""));
+  return Number.isFinite(number) ? number : 0;
+}
+
+function formatPriceLabel(value) {
+  const number = parseMoneyValue(value);
+  return number ? number.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }) : "Not set";
+}
+
+function getLogoTypeForPrice(value) {
+  return parseMoneyValue(value) >= 1000000 ? "Luxury eXp" : "Regular eXp";
+}
+
+function getAgentProfile(agentName) {
+  const profiles = state.agentProfiles || {};
+  const key = String(agentName || "").trim().toLowerCase();
+  return profiles[key] || {};
+}
+
+function getAgentWarnings(post) {
+  const profile = getAgentProfile(post.agentName);
+  const warnings = [];
+  if (!profile.photo && post.agentPhotoConfirmed !== "YES") warnings.push("Agent photo missing or not confirmed");
+  if (!profile.phone && post.agentPhoneConfirmed !== "YES") warnings.push("Agent phone missing or not confirmed");
+  if (!profile.email && post.agentEmailConfirmed !== "YES") warnings.push("Agent email missing or not confirmed");
+  if (!profile.instagram && !post.agentInstagramHandle) warnings.push("Agent Instagram handle missing");
+  return warnings;
+}
+
 function mapSocialSheetRow(row) {
   return {
     id: row.ID || "",
@@ -834,9 +895,21 @@ function mapSocialSheetRow(row) {
     mlsLink: row["MLS Link"] || "",
     propertyAddress: row["Property Address"] || "",
     duplicateValidation: row["Duplicate Validation"] || "",
+    price: row.Price || "",
+    bedrooms: row.Bedrooms || "",
+    bathrooms: row.Bathrooms || "",
+    squareFeet: row["Approximate Square Feet"] || row["Approx. Sq Ft"] || "",
+    mlsDescription: row["MLS Description"] || "",
+    logoType: row["Logo Type"] || getLogoTypeForPrice(row.Price),
     statusWorkflow: row["Status (Workflow)"] || "New",
     subject: row.Subject || "",
     emailTemplate: row["Email Template"] || "",
+    agentPhotoConfirmed: row["Agent Photo Confirmed"] || "NO",
+    agentNameConfirmed: row["Agent Name Confirmed"] || "NO",
+    agentPhoneConfirmed: row["Agent Phone Confirmed"] || "NO",
+    agentEmailConfirmed: row["Agent Email Confirmed"] || "NO",
+    agentInstagramHandle: row["Agent Instagram Handle"] || "",
+    canvaVideoLink: row["Canva Video Link"] || "",
     graphicsCreated: row["Graphics Created?"] || "NO",
     posted: row.Posted || "NO",
     datePosted: row["Date Posted"] || "",
@@ -857,7 +930,20 @@ function socialPatchToSheetFields(patch) {
     datePosted: "Date Posted",
     igPostLink: "IG Post Link",
     statusWorkflow: "Status (Workflow)",
-    duplicateValidation: "Duplicate Validation"
+    duplicateValidation: "Duplicate Validation",
+    price: "Price",
+    bedrooms: "Bedrooms",
+    bathrooms: "Bathrooms",
+    squareFeet: "Approximate Square Feet",
+    mlsDescription: "MLS Description",
+    logoType: "Logo Type",
+    agentPhotoConfirmed: "Agent Photo Confirmed",
+    agentNameConfirmed: "Agent Name Confirmed",
+    agentPhoneConfirmed: "Agent Phone Confirmed",
+    agentEmailConfirmed: "Agent Email Confirmed",
+    agentInstagramHandle: "Agent Instagram Handle",
+    canvaVideoLink: "Canva Video Link",
+    caption: "Caption"
   };
   return Object.fromEntries(
     Object.entries(patch)
@@ -974,11 +1060,11 @@ function getVisibleSocialPosts() {
 
     if (activeSocialPostFilter === "All" && isSocialPostCompleted(post)) return false;
     if (["Coming Soon", "New Listing", "Pending", "Under Contract", "Closed"].includes(activeSocialPostFilter) && type !== activeSocialPostFilter) return false;
-    if (["New", "Needs Design", "Needs Caption", "Ready To Post"].includes(activeSocialPostFilter) && status !== activeSocialPostFilter) return false;
+    if (socialWorkflowStatuses.includes(activeSocialPostFilter) && status !== activeSocialPostFilter) return false;
     if (activeSocialPostFilter === "Duplicate" && !duplicate) return false;
 
     if (!term) return true;
-    return [post.propertyAddress, post.mlsNumber, post.agentName].some((value) => String(value || "").toLowerCase().includes(term));
+    return [post.propertyAddress, post.mlsNumber, post.agentName, post.agentInstagramHandle].some((value) => String(value || "").toLowerCase().includes(term));
   });
 }
 
@@ -990,8 +1076,11 @@ function renderSocialPostSummary() {
   summary.innerHTML = `
     <article class="metric compact-metric"><span>New</span><strong>${countByStatus("New")}</strong></article>
     <article class="metric compact-metric"><span>Needs Design</span><strong>${countByStatus("Needs Design")}</strong></article>
+    <article class="metric compact-metric"><span>Needs Photos</span><strong>${countByStatus("Needs Photos")}</strong></article>
+    <article class="metric compact-metric"><span>Photo Prep Ready</span><strong>${countByStatus("Photo Prep Ready")}</strong></article>
     <article class="metric compact-metric"><span>Needs Caption</span><strong>${countByStatus("Needs Caption")}</strong></article>
-    <article class="metric compact-metric"><span>Ready To Post</span><strong>${countByStatus("Ready To Post")}</strong></article>
+    <article class="metric compact-metric"><span>Caption Ready</span><strong>${countByStatus("Caption Ready")}</strong></article>
+    <article class="metric compact-metric"><span>Ready To WhatsApp</span><strong>${countByStatus("Ready To Send To WhatsApp")}</strong></article>
     <article class="metric compact-metric"><span>Posted This Week</span><strong>${postedThisWeek}</strong></article>
   `;
 }
@@ -1010,8 +1099,62 @@ function socialField(label, value, link = false) {
   return `<div class="social-field"><span>${escapeHTML(label)}</span><strong>${content}</strong></div>`;
 }
 
+function socialInputField(label, field, value, type = "text") {
+  return `
+    <label class="social-edit-field">
+      ${escapeHTML(label)}
+      <input data-social-edit="${escapeHTML(field)}" type="${escapeHTML(type)}" value="${escapeHTML(value || "")}">
+    </label>
+  `;
+}
+
+function socialTextareaField(label, field, value) {
+  return `
+    <label class="social-edit-field wide">
+      ${escapeHTML(label)}
+      <textarea data-social-edit="${escapeHTML(field)}">${escapeHTML(value || "")}</textarea>
+    </label>
+  `;
+}
+
+function renderVerificationChecks(post) {
+  const checks = [
+    ["agentPhotoConfirmed", "Correct agent photo"],
+    ["agentNameConfirmed", "Correct agent name"],
+    ["agentPhoneConfirmed", "Correct phone number"],
+    ["agentEmailConfirmed", "Correct email address"]
+  ];
+  return checks.map(([field, label]) => `
+    <label class="mini-check">
+      <input type="checkbox" data-social-check="${field}" data-id="${escapeHTML(post.id)}" ${post[field] === "YES" ? "checked" : ""}>
+      <span>${label}</span>
+    </label>
+  `).join("");
+}
+
+function renderPhotoPrepForPost(post) {
+  const processed = post.processedPhotos || {};
+  return socialPhotoSlots.map((slot) => {
+    const dataUrl = processed[slot] || "";
+    return `
+      <article class="listing-photo-slot">
+        <div>
+          <strong>${escapeHTML(slot)}</strong>
+          <span>${dataUrl ? "Ready" : "Needs photo"}</span>
+        </div>
+        <input type="file" accept="image/*" data-listing-photo="${escapeHTML(slot)}" data-id="${escapeHTML(post.id)}">
+        <div class="listing-photo-preview" data-listing-photo-preview="${escapeHTML(post.id)}-${escapeHTML(slot)}">
+          ${dataUrl ? `<img src="${dataUrl}" alt="${escapeHTML(slot)} preview">` : `<span>No processed image yet.</span>`}
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
 function renderSocialPostCard(post) {
   const status = post.statusWorkflow || "New";
+  const logoType = post.logoType || getLogoTypeForPrice(post.price);
+  const warnings = getAgentWarnings(post);
   const workflowButtons = socialWorkflowStatuses.map((workflow) => `
     <button class="quiet ${workflow === status ? "active-action" : ""}" data-social-workflow="${escapeHTML(workflow)}" data-id="${escapeHTML(post.id)}" type="button">${escapeHTML(workflow)}</button>
   `).join("");
@@ -1022,26 +1165,46 @@ function renderSocialPostCard(post) {
         <div>
           <p class="eyebrow">${escapeHTML(post.id || "No ID")}</p>
           <h3>${escapeHTML(getSocialPostTitle(post))}</h3>
+          ${warnings.length ? `<p class="warning-line">${escapeHTML(warnings.join(". "))}</p>` : ""}
         </div>
         <span class="status-pill">${escapeHTML(status)}</span>
       </div>
 
       <div class="social-field-grid">
-        ${socialField("ID", post.id)}
         ${socialField("Date Received", post.dateReceived)}
-        ${socialField("Agent Name", post.agentName)}
-        ${socialField("Listing Type", post.listingType)}
         ${socialField("MLS#", post.mlsNumber)}
+        ${socialField("Price", formatPriceLabel(post.price))}
+        ${socialField("Logo Type", logoType)}
+        ${socialField("Bedrooms", post.bedrooms)}
+        ${socialField("Bathrooms", post.bathrooms)}
+        ${socialField("Approx. Sq Ft", post.squareFeet)}
         ${socialField("MLS Link", post.mlsLink, true)}
-        ${socialField("Property Address", post.propertyAddress)}
         ${socialField("Duplicate Validation", post.duplicateValidation)}
-        ${socialField("Status Workflow", status)}
-        ${socialField("Graphics Created?", post.graphicsCreated || "NO")}
-        ${socialField("Posted", post.posted || "NO")}
-        ${socialField("Date Posted", post.datePosted)}
+        ${socialField("Canva Video", post.canvaVideoLink, true)}
         ${socialField("Graphics Link", post.graphicsLink, true)}
         ${socialField("IG Post Link", post.igPostLink, true)}
       </div>
+
+      <details class="listing-detail-panel" open>
+        <summary>Listing Details And Agent Check</summary>
+        <div class="social-edit-grid">
+          ${socialInputField("Agent Instagram Handle", "agentInstagramHandle", post.agentInstagramHandle || getAgentProfile(post.agentName).instagram || "")}
+          ${socialInputField("Price", "price", post.price || "")}
+          ${socialInputField("Bedrooms", "bedrooms", post.bedrooms || "")}
+          ${socialInputField("Bathrooms", "bathrooms", post.bathrooms || "")}
+          ${socialInputField("Approximate Square Feet", "squareFeet", post.squareFeet || "")}
+          ${socialInputField("Canva Video Link", "canvaVideoLink", post.canvaVideoLink || "")}
+          ${socialTextareaField("MLS Description", "mlsDescription", post.mlsDescription || "")}
+        </div>
+        <div class="mini-check-grid">${renderVerificationChecks(post)}</div>
+      </details>
+
+      <details class="listing-detail-panel">
+        <summary>6 Photo Prep</summary>
+        <div class="listing-photo-grid">${renderPhotoPrepForPost(post)}</div>
+      </details>
+
+      ${post.caption ? `<textarea class="caption-preview" readonly>${escapeHTML(post.caption)}</textarea>` : ""}
 
       <div class="social-action-group">
         <span>Workflow</span>
@@ -1051,21 +1214,22 @@ function renderSocialPostCard(post) {
       <div class="social-action-group">
         <span>Quick Actions</span>
         <div class="button-row">
+          <button data-social-action="save-details" data-id="${escapeHTML(post.id)}" type="button">Save Details</button>
           <button data-social-action="generate-caption" data-id="${escapeHTML(post.id)}" type="button">Generate Caption</button>
-          <button class="quiet" data-social-action="build-caption" data-id="${escapeHTML(post.id)}" type="button">Build Caption</button>
           <button class="quiet" data-social-action="copy-caption" data-id="${escapeHTML(post.id)}" type="button">Copy Caption</button>
           <button class="quiet" data-social-action="open-mls" data-id="${escapeHTML(post.id)}" type="button">Open MLS Link</button>
           <button class="quiet" data-social-action="graphics-link" data-id="${escapeHTML(post.id)}" type="button">Add Graphics Link</button>
           <button class="quiet" data-social-action="ig-link" data-id="${escapeHTML(post.id)}" type="button">Add IG Post Link</button>
+          <button class="quiet" data-social-action="whatsapp" data-id="${escapeHTML(post.id)}" type="button">Prepare WhatsApp</button>
           <button data-social-action="mark-posted" data-id="${escapeHTML(post.id)}" type="button">Mark Posted</button>
         </div>
       </div>
     </article>
   `;
 }
-
 function renderSocialPosts() {
   if (!Array.isArray(state.socialPosts)) state.socialPosts = [];
+  if (!state.agentProfiles) state.agentProfiles = {};
   renderSocialPostSummary();
   renderSocialPostFilters();
   setSocialPostSyncStatus(socialPostsSyncUrl ? "Social posts sync: ready." : "Social posts sync: local only until the Apps Script URL is added.");
@@ -1081,12 +1245,15 @@ function renderSocialPosts() {
 
 function buildCaptionFromSocialPost(post) {
   const status = String(post.listingType || "NEW LISTING").toUpperCase();
-  const agentText = String(post.agentHandle || "").trim() || (String(post.agentName || "").startsWith("@") ? post.agentName : "@agenthandle");
+  const profile = getAgentProfile(post.agentName);
+  const agentText = String(post.agentInstagramHandle || profile.instagram || "").trim() || "@agenthandle";
   const details = [
-    post.propertyAddress ? `Featured property: ${post.propertyAddress}` : "Featured Arizona property",
-    post.mlsNumber ? `MLS ${post.mlsNumber}` : "MLS details pending",
-    post.mlsLink ? `MLS link: ${post.mlsLink}` : "MLS link pending"
-  ].join(". ");
+    post.mlsDescription || "A polished Arizona listing with standout details and a strong market position.",
+    post.bedrooms ? `${post.bedrooms} bedrooms` : "",
+    post.bathrooms ? `${post.bathrooms} bathrooms` : "",
+    post.squareFeet ? `${post.squareFeet} approximate square feet` : "",
+    post.price ? `Listed at ${formatPriceLabel(post.price)}` : ""
+  ].filter(Boolean).join(". ");
   return buildCaption({
     address: post.propertyAddress || "Property address needed",
     status,
@@ -1097,7 +1264,7 @@ function buildCaptionFromSocialPost(post) {
 
 function fillCaptionBuilderFromSocialPost(post) {
   const caption = buildCaptionFromSocialPost(post);
-  const agentText = String(post.agentHandle || "").trim() || (String(post.agentName || "").startsWith("@") ? post.agentName : "@agenthandle");
+  const agentText = String(post.agentInstagramHandle || getAgentProfile(post.agentName).instagram || "").trim() || "@agenthandle";
   document.querySelector("#captionAddress").value = post.propertyAddress || "";
   document.querySelector("#captionStatus").value = String(post.listingType || "NEW LISTING").toUpperCase();
   document.querySelector("#captionAgent").value = agentText;
@@ -1136,6 +1303,12 @@ function createLocalSocialPostFromForm() {
     listingType,
     mlsNumber: document.querySelector("#localSocialMls")?.value.trim() || "",
     mlsLink: document.querySelector("#localSocialMlsLink")?.value.trim() || "",
+    price: document.querySelector("#localSocialPrice")?.value.trim() || "",
+    bedrooms: document.querySelector("#localSocialBedrooms")?.value.trim() || "",
+    bathrooms: document.querySelector("#localSocialBathrooms")?.value.trim() || "",
+    squareFeet: document.querySelector("#localSocialSqft")?.value.trim() || "",
+    mlsDescription: document.querySelector("#localSocialDescription")?.value.trim() || "",
+    logoType: getLogoTypeForPrice(document.querySelector("#localSocialPrice")?.value.trim() || ""),
     propertyAddress,
     duplicateValidation: "Local task added manually",
     statusWorkflow: "New",
@@ -1154,16 +1327,116 @@ function createLocalSocialPostFromForm() {
   showToast("Local social post task added.");
 }
 
+function getSocialPostCardElement(id) {
+  return document.querySelector(`.social-post-card button[data-id="${CSS.escape(id)}"]`)?.closest(".social-post-card");
+}
+
+function collectSocialPostDetailsFromCard(post) {
+  const card = getSocialPostCardElement(post.id);
+  if (!card) return {};
+  const patch = {};
+  card.querySelectorAll("[data-social-edit]").forEach((input) => {
+    patch[input.dataset.socialEdit] = input.value.trim();
+  });
+  patch.logoType = getLogoTypeForPrice(patch.price || post.price);
+  return patch;
+}
+
+function buildCaptionPayload(post) {
+  const profile = getAgentProfile(post.agentName);
+  return {
+    propertyAddress: post.propertyAddress,
+    listingType: post.listingType,
+    status: post.listingType,
+    agentName: post.agentName,
+    agentInstagramHandle: post.agentInstagramHandle || profile.instagram || "",
+    mlsNumber: post.mlsNumber,
+    mlsLink: post.mlsLink,
+    price: post.price,
+    soldPrice: post.soldPrice || "",
+    bedrooms: post.bedrooms,
+    bathrooms: post.bathrooms,
+    squareFeet: post.squareFeet,
+    description: post.mlsDescription,
+    keyFeatures: "",
+    notes: "Manual Instagram posting. No hyphens or em dashes."
+  };
+}
+
+async function generateCaptionWithServer(post) {
+  const payload = buildCaptionPayload(post);
+  if (!payload.agentInstagramHandle) showToast("Agent handle missing. Add before finalizing caption.");
+  const response = await fetch(captionServerUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload)
+  });
+  const result = await response.json();
+  if (!response.ok || !result.ok) throw new Error(result.error || "Caption generation failed.");
+  return result.caption;
+}
+
+function buildWhatsAppHandoff(post) {
+  const photoCount = Object.keys(post.processedPhotos || {}).length;
+  return `Listing package ready for Instagram
+
+Property: ${post.propertyAddress || "Not set"}
+Status: ${post.listingType || "Not set"}
+Agent: ${post.agentName || "Not set"}
+MLS: ${post.mlsNumber || "Not set"}
+Logo: ${post.logoType || getLogoTypeForPrice(post.price)}
+Canva video: ${post.canvaVideoLink || post.graphicsLink || "Not added"}
+Processed photos: ${photoCount}/6
+
+Caption:
+${post.caption || "Caption not generated yet."}
+
+Posting note: Post manually on phone, add music, then paste IG link back into VA Command Center.`;
+}
+
+async function processListingPhoto(postId, slot, file) {
+  const post = getSocialPostById(postId);
+  if (!post || !file) return;
+  const output = document.querySelector(`[data-listing-photo-preview="${CSS.escape(`${postId}-${slot}`)}"]`);
+  if (output) output.innerHTML = `<span>Processing...</span>`;
+  const dataUrl = await createInstagramPhoto(file);
+  const processedPhotos = { ...(post.processedPhotos || {}), [slot]: dataUrl };
+  updateSocialPost(postId, { processedPhotos, statusWorkflow: Object.keys(processedPhotos).length >= 6 ? "Photo Prep Ready" : "Photos Selected" }, { sync: false });
+}
 function handleSocialPostAction(action, post) {
   if (!post) return;
-  if (action === "generate-caption" || action === "build-caption") {
+  if (action === "save-details") {
+    const patch = collectSocialPostDetailsFromCard(post);
+    updateSocialPost(post.id, patch);
+    showToast("Listing details saved.");
+    return;
+  }
+  if (action === "generate-caption") {
+    const patch = collectSocialPostDetailsFromCard(post);
+    const updated = updateSocialPost(post.id, patch, { sync: false }) || post;
+    showToast("Generating caption...");
+    generateCaptionWithServer(updated).then((caption) => {
+      updateSocialPost(updated.id, { caption, statusWorkflow: "Caption Ready" });
+      document.querySelector("#captionOutput").value = caption;
+      showToast("Caption generated.");
+    }).catch((error) => {
+      const caption = buildCaptionFromSocialPost(updated);
+      updateSocialPost(updated.id, { caption, statusWorkflow: "Caption Ready" }, { sync: false });
+      document.querySelector("#captionOutput").value = caption;
+      showToast("Caption server unavailable. Local draft created.");
+      setSocialPostSyncStatus(`Caption server error: ${error.message}`);
+    });
+    return;
+  }
+  if (action === "build-caption") {
     fillCaptionBuilderFromSocialPost(post);
-    if (post.statusWorkflow === "Needs Caption") updateSocialPost(post.id, { statusWorkflow: "Ready To Post" });
-    showToast(action === "generate-caption" ? "Caption drafted locally. ChatGPT generation comes in Phase 6." : "Caption builder filled.");
+    if (post.statusWorkflow === "Needs Caption") updateSocialPost(post.id, { statusWorkflow: "Caption Ready" });
+    showToast("Caption builder filled.");
     return;
   }
   if (action === "copy-caption") {
-    copyText(fillCaptionBuilderFromSocialPost(post));
+    const caption = post.caption || fillCaptionBuilderFromSocialPost(post);
+    copyText(caption);
     return;
   }
   if (action === "open-mls") {
@@ -1175,9 +1448,9 @@ function handleSocialPostAction(action, post) {
     return;
   }
   if (action === "graphics-link") {
-    const graphicsLink = window.prompt("Paste the graphics link:", post.graphicsLink || "");
+    const graphicsLink = window.prompt("Paste the graphics or Canva video link:", post.graphicsLink || post.canvaVideoLink || "");
     if (graphicsLink === null) return;
-    updateSocialPost(post.id, { graphicsLink: graphicsLink.trim(), graphicsCreated: graphicsLink.trim() ? "YES" : post.graphicsCreated || "NO" });
+    updateSocialPost(post.id, { graphicsLink: graphicsLink.trim(), canvaVideoLink: graphicsLink.trim(), graphicsCreated: graphicsLink.trim() ? "YES" : post.graphicsCreated || "NO", statusWorkflow: graphicsLink.trim() ? "Design Done" : post.statusWorkflow });
     showToast("Graphics link updated.");
     return;
   }
@@ -1186,6 +1459,13 @@ function handleSocialPostAction(action, post) {
     if (igPostLink === null) return;
     updateSocialPost(post.id, { igPostLink: igPostLink.trim() });
     showToast("Instagram link updated.");
+    return;
+  }
+  if (action === "whatsapp") {
+    const handoff = buildWhatsAppHandoff(post);
+    updateSocialPost(post.id, { statusWorkflow: "Ready To Send To WhatsApp" });
+    copyText(handoff);
+    showToast("WhatsApp handoff copied.");
     return;
   }
   if (action === "mark-posted") {
@@ -1203,7 +1483,6 @@ function handleSocialPostAction(action, post) {
     showToast("Social post marked posted.");
   }
 }
-
 function renderVideoTasks() {
   const list = document.querySelector("#videoTaskList");
   if (!list) return;
@@ -1969,6 +2248,18 @@ document.addEventListener("DOMContentLoaded", () => {
     renderSocialPosts();
   });
 
+  document.querySelector("#socialPostTrackerList")?.addEventListener("change", (event) => {
+    const check = event.target.closest("input[data-social-check]");
+    if (check) {
+      updateSocialPost(check.dataset.id, { [check.dataset.socialCheck]: check.checked ? "YES" : "NO" });
+      return;
+    }
+
+    const photoInput = event.target.closest("input[data-listing-photo]");
+    if (photoInput && photoInput.files.length) {
+      processListingPhoto(photoInput.dataset.id, photoInput.dataset.listingPhoto, photoInput.files[0]).catch(() => showToast("Photo prep failed."));
+    }
+  });
   document.querySelector("#socialPostSearch")?.addEventListener("input", (event) => {
     socialPostSearchTerm = event.target.value;
     renderSocialPosts();
