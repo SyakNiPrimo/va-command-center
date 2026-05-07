@@ -80,7 +80,7 @@ function getSocialPostTasks(includeCompleted) {
   for (let index = 1; index < values.length; index += 1) {
     const rowObject = rowToObject(headers, values[index]);
     if (!rowObject.ID) continue;
-    if (!includeCompleted && isPostedYes(rowObject.Posted)) continue;
+    if (!includeCompleted && isSocialPostComplete(rowObject)) continue;
     rows.push(rowObject);
   }
 
@@ -196,6 +196,10 @@ function formatCell(value) {
     return Utilities.formatDate(value, "America/Phoenix", "yyyy-MM-dd");
   }
   return value === null || value === undefined ? "" : String(value);
+}
+
+function isSocialPostComplete(rowObject) {
+  return isPostedYes(rowObject.Posted) || String(rowObject["Status (Workflow)"] || "").trim().toLowerCase() === "completed";
 }
 
 function isPostedYes(value) {

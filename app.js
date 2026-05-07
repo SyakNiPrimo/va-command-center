@@ -47,12 +47,13 @@ const socialPostFilters = [
   "Pending",
   "Under Contract",
   "Closed",
+  "New",
   "Needs Design",
   "Needs Caption",
   "Ready To Post",
   "Duplicate"
 ];
-const socialWorkflowStatuses = ["Needs Design", "Needs Caption", "Ready To Post", "Posted", "Completed", "Duplicate or Cancelled"];
+const socialWorkflowStatuses = ["New", "Needs Design", "Needs Caption", "Ready To Post", "Posted", "Completed", "Duplicate or Cancelled"];
 let activeSocialPostFilter = "All";
 let socialPostSearchTerm = "";
 
@@ -833,7 +834,7 @@ function mapSocialSheetRow(row) {
     mlsLink: row["MLS Link"] || "",
     propertyAddress: row["Property Address"] || "",
     duplicateValidation: row["Duplicate Validation"] || "",
-    statusWorkflow: row["Status (Workflow)"] || "Needs Design",
+    statusWorkflow: row["Status (Workflow)"] || "New",
     subject: row.Subject || "",
     emailTemplate: row["Email Template"] || "",
     graphicsCreated: row["Graphics Created?"] || "NO",
@@ -967,13 +968,13 @@ function updateSocialPost(id, patch, options = {}) {
 function getVisibleSocialPosts() {
   const term = socialPostSearchTerm.trim().toLowerCase();
   return state.socialPosts.filter((post) => {
-    const status = post.statusWorkflow || "Needs Design";
+    const status = post.statusWorkflow || "New";
     const type = post.listingType || "";
     const duplicate = String(post.duplicateValidation || "").toLowerCase().includes("duplicate") || status === "Duplicate or Cancelled";
 
     if (activeSocialPostFilter === "All" && isSocialPostCompleted(post)) return false;
     if (["Coming Soon", "New Listing", "Pending", "Under Contract", "Closed"].includes(activeSocialPostFilter) && type !== activeSocialPostFilter) return false;
-    if (["Needs Design", "Needs Caption", "Ready To Post"].includes(activeSocialPostFilter) && status !== activeSocialPostFilter) return false;
+    if (["New", "Needs Design", "Needs Caption", "Ready To Post"].includes(activeSocialPostFilter) && status !== activeSocialPostFilter) return false;
     if (activeSocialPostFilter === "Duplicate" && !duplicate) return false;
 
     if (!term) return true;
@@ -987,6 +988,7 @@ function renderSocialPostSummary() {
   const countByStatus = (status) => state.socialPosts.filter((post) => post.statusWorkflow === status && !isSocialPostCompleted(post)).length;
   const postedThisWeek = state.socialPosts.filter((post) => post.posted === "YES" && isDateThisWeek(post.datePosted)).length;
   summary.innerHTML = `
+    <article class="metric compact-metric"><span>New</span><strong>${countByStatus("New")}</strong></article>
     <article class="metric compact-metric"><span>Needs Design</span><strong>${countByStatus("Needs Design")}</strong></article>
     <article class="metric compact-metric"><span>Needs Caption</span><strong>${countByStatus("Needs Caption")}</strong></article>
     <article class="metric compact-metric"><span>Ready To Post</span><strong>${countByStatus("Ready To Post")}</strong></article>
@@ -1009,7 +1011,7 @@ function socialField(label, value, link = false) {
 }
 
 function renderSocialPostCard(post) {
-  const status = post.statusWorkflow || "Needs Design";
+  const status = post.statusWorkflow || "New";
   const workflowButtons = socialWorkflowStatuses.map((workflow) => `
     <button class="quiet ${workflow === status ? "active-action" : ""}" data-social-workflow="${escapeHTML(workflow)}" data-id="${escapeHTML(post.id)}" type="button">${escapeHTML(workflow)}</button>
   `).join("");
@@ -1136,7 +1138,7 @@ function createLocalSocialPostFromForm() {
     mlsLink: document.querySelector("#localSocialMlsLink")?.value.trim() || "",
     propertyAddress,
     duplicateValidation: "Local task added manually",
-    statusWorkflow: "Needs Design",
+    statusWorkflow: "New",
     subject: "Local listing social post task",
     emailTemplate: "",
     graphicsCreated: "NO",
@@ -1147,7 +1149,7 @@ function createLocalSocialPostFromForm() {
   });
   saveState();
   renderSocialPosts();
-  syncSocialPostUpdate(id, { statusWorkflow: "Needs Design", graphicsCreated: "NO", posted: "NO" }).catch(() => {});
+  syncSocialPostUpdate(id, { statusWorkflow: "New", graphicsCreated: "NO", posted: "NO" }).catch(() => {});
   closeLocalSocialPostModal();
   showToast("Local social post task added.");
 }
