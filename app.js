@@ -22,6 +22,7 @@ const statuses = [
 const priorities = ["Urgent", "High", "Medium", "Low"];
 const attendanceSyncUrl = "https://script.google.com/macros/s/AKfycbzr2BcF1hd9dEx6_dzuw1SZgMF6qppY67Pf4Fh1xJTpwX_DA473GaB5uLkh_u6wl6mPew/exec";
 const brochureEmailSendUrl = "https://script.google.com/macros/s/AKfycbzQvm4KYNm9qkTeXXUzTYbuQlL-6aU5FdIGO172ovZZ-HVZfqxALkoY_vhDiguV4qHdAQ/exec";
+const brochureEmailCc = "ralph@jakobovgroup.com";
 let attendanceSyncTimer = null;
 const canvaVideoTemplate = {
   name: "Social Media Video",
@@ -1041,7 +1042,7 @@ function closeBrochureModal() {
 
 function getBrochureDraftUrl(values) {
   const composeUrl = new URL("https://mail.google.com/mail/");
-  composeUrl.hash = `view=cm&fs=1&to=${encodeURIComponent(values.kimEmail)}&su=${encodeURIComponent(values.subject)}&body=${encodeURIComponent(values.body)}`;
+  composeUrl.hash = `view=cm&fs=1&to=${encodeURIComponent(values.kimEmail)}&cc=${encodeURIComponent(brochureEmailCc)}&su=${encodeURIComponent(values.subject)}&body=${encodeURIComponent(values.body)}`;
   return composeUrl.toString();
 }
 
@@ -1057,6 +1058,7 @@ async function sendBrochureRequest(values) {
     headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify({
       to: values.kimEmail,
+      cc: brochureEmailCc,
       subject: values.subject,
       body: values.body,
       address: values.address,

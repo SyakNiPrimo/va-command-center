@@ -1,4 +1,5 @@
 const DEFAULT_BROCHURE_RECIPIENT = "KLeal@navititle.com";
+const DEFAULT_BROCHURE_CC = "ralph@jakobovgroup.com";
 
 function doPost(event) {
   let result;
@@ -16,6 +17,7 @@ function doPost(event) {
 
 function sendLuxuryBrochureRequest(payload) {
   const to = String(payload.to || DEFAULT_BROCHURE_RECIPIENT).trim();
+  const cc = String(payload.cc || DEFAULT_BROCHURE_CC).trim();
   const subject = String(payload.subject || "").trim();
   const body = String(payload.body || "").trim();
 
@@ -25,6 +27,7 @@ function sendLuxuryBrochureRequest(payload) {
 
   MailApp.sendEmail({
     to,
+    cc,
     subject,
     body,
     name: "The Jakobov Group"
@@ -33,6 +36,7 @@ function sendLuxuryBrochureRequest(payload) {
   return {
     ok: true,
     sentTo: to,
+    cc,
     subject,
     sentAt: new Date().toISOString()
   };
