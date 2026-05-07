@@ -193,42 +193,67 @@
 
     <section id="social" class="tab-panel">
       <div class="section-head">
-        <h2>Social Media Management</h2>
+        <div>
+          <h2>Social Media Management</h2>
+          <p class="section-note">Listing post tasks, captions, photo prep, Canva videos, and compliance rules in one workflow.</p>
+        </div>
       </div>
-      <div class="two-column">
-        <article class="panel flat">
-          <h3>Post Rules</h3>
-          <ul class="checklist">
-            <li>No hyphens or em dashes in captions.</li>
-            <li>Use a maximum of 5 hashtags.</li>
-            <li>For real estate posts, caption comes before image notes.</li>
-            <li>Full property address goes on the first line.</li>
-            <li>Property status starts in all caps.</li>
-            <li>Use “Exclusively listed by” with only the agent handle and @thejakobovgroup.</li>
-            <li>Add “EXP Realty and The Jakobov Group” at the beginning when needed.</li>
-            <li>Required hashtags: #arizona #RealEstate #TheJakobovGroup.</li>
-            <li>Create a short Canva video for listing posts when requested.</li>
-            <li>Export the Canva video as MP4 before posting.</li>
-          </ul>
-        </article>
-        <article class="panel flat">
-          <h3>Caption Builder</h3>
-          <form id="captionForm" class="stack-form">
-            <input id="captionAddress" placeholder="Full property address">
-            <select id="captionStatus">
-              <option>COMING SOON</option>
-              <option>NEW LISTING</option>
-              <option>PENDING</option>
-              <option>UNDER CONTRACT</option>
-              <option>CLOSED</option>
-            </select>
-            <input id="captionAgent" placeholder="@agenthandle">
-            <textarea id="captionDetails" placeholder="Luxury description, key features, beds, baths, square footage"></textarea>
-            <button type="submit">Build Caption</button>
-          </form>
-          <textarea id="captionOutput" readonly placeholder="Your caption will appear here"></textarea>
-        </article>
-      </div>
+
+      <article class="panel flat social-tracker-panel">
+        <div class="section-head">
+          <div>
+            <h3>Listing Social Posts Tracker</h3>
+            <p class="section-note">Active listing post tasks from Gmail and Google Sheets will appear here. Posting to Instagram stays manual.</p>
+          </div>
+          <div class="button-row">
+            <button id="addLocalSocialPostBtn" type="button" class="quiet">Add Local Task</button>
+          </div>
+        </div>
+
+        <div id="socialPostSummary" class="social-summary"></div>
+
+        <div class="tracker-tools">
+          <div id="socialPostFilters" class="filter-chips" aria-label="Social post filters"></div>
+          <label class="search-field">
+            Search
+            <input id="socialPostSearch" placeholder="Address, MLS number, or agent name">
+          </label>
+        </div>
+
+        <p class="duplicate-note"><strong>Duplicate Protection:</strong> Same property with the same listing type is treated as a duplicate. The same property can still move through Coming Soon, New Listing, Pending, Under Contract, and Closed.</p>
+
+        <div id="socialPostTrackerList" class="social-post-list"></div>
+      </article>
+
+      <article class="panel flat caption-builder-panel">
+        <h3>Caption Builder</h3>
+        <form id="captionForm" class="stack-form">
+          <input id="captionAddress" placeholder="Full property address">
+          <select id="captionStatus">
+            <option>COMING SOON</option>
+            <option>NEW LISTING</option>
+            <option>PENDING</option>
+            <option>UNDER CONTRACT</option>
+            <option>CLOSED</option>
+          </select>
+          <input id="captionAgent" placeholder="@agenthandle">
+          <textarea id="captionDetails" placeholder="Luxury description, key features, beds, baths, square footage"></textarea>
+          <button type="submit">Build Caption</button>
+        </form>
+        <textarea id="captionOutput" readonly placeholder="Your caption will appear here"></textarea>
+      </article>
+
+      <article class="panel flat photo-prep-panel">
+        <div class="section-head">
+          <div>
+            <h3>Instagram Photo Prep</h3>
+            <p class="section-note">Turn listing photos into 1080 x 1350 Instagram images with a blurred background.</p>
+          </div>
+          <button id="generatePhotoPrepBtn" type="button">Generate All</button>
+        </div>
+        <div id="photoPrepSlots" class="photo-prep-grid"></div>
+      </article>
+
       <article class="panel flat social-video-panel">
         <div class="section-head">
           <div>
@@ -267,6 +292,7 @@
         </form>
         <div id="videoTaskList" class="table-wrap"></div>
       </article>
+
       <article class="panel flat canva-api-panel">
         <div class="section-head">
           <div>
@@ -281,18 +307,23 @@
         </div>
         <pre id="canvaApiStatus" class="api-status">Canva API not checked yet.</pre>
       </article>
-      <article class="panel flat photo-prep-panel">
-        <div class="section-head">
-          <div>
-            <h3>Instagram Photo Prep</h3>
-            <p class="section-note">Turn listing photos into 1080 x 1350 Instagram images with a blurred background.</p>
-          </div>
-          <button id="generatePhotoPrepBtn" type="button">Generate All</button>
-        </div>
-        <div id="photoPrepSlots" class="photo-prep-grid"></div>
+
+      <article class="panel flat post-rules-panel">
+        <h3>Post Rules</h3>
+        <ul class="checklist">
+          <li>No hyphens or em dashes in captions.</li>
+          <li>Use a maximum of 5 hashtags.</li>
+          <li>For real estate posts, caption comes before image notes.</li>
+          <li>Full property address goes on the first line.</li>
+          <li>Property status starts in all caps.</li>
+          <li>Use "Exclusively listed by" with only the agent handle and @thejakobovgroup.</li>
+          <li>Add "EXP Realty and The Jakobov Group" at the beginning when needed.</li>
+          <li>Required hashtags: #arizona #RealEstate #TheJakobovGroup.</li>
+          <li>Create a short Canva video for listing posts when requested.</li>
+          <li>Export the Canva video as MP4 before posting.</li>
+        </ul>
       </article>
     </section>
-
     <section id="compliance" class="tab-panel">
       <div class="section-head">
         <h2>Weekly Compliance Check</h2>

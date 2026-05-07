@@ -810,6 +810,159 @@ main {
   white-space: pre-wrap;
 }
 
+.social-tracker-panel,
+.caption-builder-panel,
+.post-rules-panel {
+  margin-top: 10px;
+}
+
+.social-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.compact-metric strong {
+  font-size: 1.28rem;
+}
+
+.tracker-tools {
+  display: grid;
+  grid-template-columns: 1fr minmax(240px, 320px);
+  gap: 10px;
+  align-items: end;
+  margin-bottom: 8px;
+}
+
+.filter-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.filter-chip {
+  background: #e8eef5;
+  color: var(--ink);
+  padding: 0.36rem 0.5rem;
+}
+
+.filter-chip.active,
+.active-action {
+  background: #d8f2ed !important;
+  color: var(--accent-dark) !important;
+  box-shadow: inset 0 0 0 1px #8fc4bc;
+}
+
+.search-field {
+  min-width: 0;
+}
+
+.duplicate-note {
+  margin: 0 0 10px;
+  border: 1px solid #b7d7cf;
+  border-radius: 8px;
+  background: #edf7f6;
+  color: #214d49;
+  padding: 8px;
+  font-size: 0.8rem;
+}
+
+.social-post-list {
+  display: grid;
+  gap: 10px;
+}
+
+.social-post-card {
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 11px;
+}
+
+.social-card-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.social-card-head h3 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.social-field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 7px;
+}
+
+.social-field {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: #f9fbfd;
+  padding: 7px;
+}
+
+.social-field span,
+.social-action-group > span {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.social-field strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  font-size: 0.82rem;
+}
+
+.social-field a {
+  color: var(--accent-dark);
+  text-decoration: none;
+}
+
+.social-action-group {
+  display: grid;
+  gap: 6px;
+}
+
+.social-action-group .button-row {
+  gap: 0.35rem;
+}
+
+.social-action-group button {
+  padding: 0.34rem 0.45rem;
+}
+
+.status-duplicate-or-cancelled {
+  border-left-color: var(--danger);
+}
+
+.status-ready-to-post {
+  border-left-color: var(--good);
+}
+
+.status-needs-caption {
+  border-left-color: var(--warn);
+}
+
+@media (max-width: 760px) {
+  .tracker-tools,
+  .social-card-head {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+}
 .social-video-panel {
   margin-top: 10px;
 }
