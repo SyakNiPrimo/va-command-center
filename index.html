@@ -206,6 +206,7 @@
             <p class="section-note">Active listing post tasks from Gmail and Google Sheets will appear here. Posting to Instagram stays manual.</p>
           </div>
           <div class="button-row">
+            <button id="syncSocialPostsBtn" type="button">Sync Social Posts</button>
             <button id="addLocalSocialPostBtn" type="button" class="quiet">Add Local Task</button>
           </div>
         </div>
@@ -222,6 +223,7 @@
 
         <p class="duplicate-note"><strong>Duplicate Protection:</strong> Same property with the same listing type is treated as a duplicate. The same property can still move through Coming Soon, New Listing, Pending, Under Contract, and Closed.</p>
 
+        <div id="socialPostSyncStatus" class="sync-inline-status">Social posts sync: local only until the Apps Script URL is added.</div>
         <div id="socialPostTrackerList" class="social-post-list"></div>
       </article>
 

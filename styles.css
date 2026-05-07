@@ -880,6 +880,16 @@ main {
   font-size: 0.8rem;
 }
 
+.sync-inline-status {
+  margin: 0 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fbfd;
+  color: var(--muted);
+  padding: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
 .social-post-list {
   display: grid;
   gap: 10px;

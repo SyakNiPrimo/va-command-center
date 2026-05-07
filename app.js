@@ -21,6 +21,7 @@ const statuses = [
 
 const priorities = ["Urgent", "High", "Medium", "Low"];
 const attendanceSyncUrl = "https://script.google.com/macros/s/AKfycbzr2BcF1hd9dEx6_dzuw1SZgMF6qppY67Pf4Fh1xJTpwX_DA473GaB5uLkh_u6wl6mPew/exec";
+const socialPostsSyncUrl = "";
 const brochureEmailSendUrl = "https://script.google.com/macros/s/AKfycbzQvm4KYNm9qkTeXXUzTYbuQlL-6aU5FdIGO172ovZZ-HVZfqxALkoY_vhDiguV4qHdAQ/exec";
 const brochureEmailCc = "ralph@jakobovgroup.com";
 const brochureEmailSignature = "Best,\nBen Tiaga";
@@ -817,6 +818,101 @@ function renderEndOfDayReport() {
   document.querySelector("#eodReport").value = buildEndOfDayReport();
 }
 
+function setSocialPostSyncStatus(message) {
+  const status = document.querySelector("#socialPostSyncStatus");
+  if (status) status.textContent = message;
+}
+
+function mapSocialSheetRow(row) {
+  return {
+    id: row.ID || "",
+    dateReceived: row["Date Received"] || "",
+    agentName: row["Agent Name"] || "",
+    listingType: normalizeSocialListingType(row["Listing Type"] || "New Listing"),
+    mlsNumber: row["MLS#"] || "",
+    mlsLink: row["MLS Link"] || "",
+    propertyAddress: row["Property Address"] || "",
+    duplicateValidation: row["Duplicate Validation"] || "",
+    statusWorkflow: row["Status (Workflow)"] || "Needs Design",
+    subject: row.Subject || "",
+    emailTemplate: row["Email Template"] || "",
+    graphicsCreated: row["Graphics Created?"] || "NO",
+    posted: row.Posted || "NO",
+    datePosted: row["Date Posted"] || "",
+    graphicsLink: row["Graphics Link"] || "",
+    igPostLink: row["IG Post Link"] || "",
+    sourceEmailId: row["Source Email ID"] || "",
+    sourceEmailSubject: row["Source Email Subject"] || "",
+    sourceEmailDate: row["Source Email Date"] || "",
+    dateProcessed: row["Date Processed"] || ""
+  };
+}
+
+function socialPatchToSheetFields(patch) {
+  const fieldMap = {
+    graphicsCreated: "Graphics Created?",
+    graphicsLink: "Graphics Link",
+    posted: "Posted",
+    datePosted: "Date Posted",
+    igPostLink: "IG Post Link",
+    statusWorkflow: "Status (Workflow)",
+    duplicateValidation: "Duplicate Validation"
+  };
+  return Object.fromEntries(
+    Object.entries(patch)
+      .filter(([key]) => fieldMap[key])
+      .map(([key, value]) => [fieldMap[key], value])
+  );
+}
+
+async function syncSocialPostUpdate(id, patch) {
+  const updates = socialPatchToSheetFields(patch);
+  if (!Object.keys(updates).length) return;
+  const payload = { id, updates };
+
+  if (socialPostsSyncUrl && String(id || "").startsWith("LOCAL-")) {
+    setSocialPostSyncStatus("Local task saved in this browser. Google Sheets updates need a sheet row ID.");
+    return;
+  }
+
+  if (!socialPostsSyncUrl) {
+    await copyText(JSON.stringify(payload, null, 2));
+    setSocialPostSyncStatus("Social posts sync URL missing. Update saved locally and payload copied.");
+    return;
+  }
+
+  setSocialPostSyncStatus(`Updating ${id} in Social Post Tasks...`);
+  const response = await fetch(socialPostsSyncUrl, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
+    body: JSON.stringify(payload)
+  });
+  const result = await response.json();
+  if (!response.ok || !result.ok) throw new Error(result.error || "Social post update failed.");
+  setSocialPostSyncStatus(result.message || `Updated ${id} in Social Post Tasks.`);
+}
+
+async function syncSocialPostsFromSheet() {
+  if (!socialPostsSyncUrl) {
+    setSocialPostSyncStatus("Google Sheets sync URL missing. Add the Social Post Tasks Apps Script URL to app.js.");
+    showToast("Social posts sync URL is not set yet.");
+    return;
+  }
+
+  setSocialPostSyncStatus("Loading active Social Post Tasks from Google Sheets...");
+  const response = await fetch(socialPostsSyncUrl);
+  const result = await response.json();
+  if (!response.ok || !result.ok) throw new Error(result.error || "Social post sync failed.");
+
+  const sheetPosts = (result.rows || []).map(mapSocialSheetRow);
+  const localOnlyPosts = state.socialPosts.filter((post) => String(post.id || "").startsWith("LOCAL-"));
+  state.socialPosts = [...sheetPosts, ...localOnlyPosts];
+  saveState();
+  renderSocialPosts();
+  setSocialPostSyncStatus(result.message || `Loaded ${sheetPosts.length} active social post tasks.`);
+  showToast(`Loaded ${sheetPosts.length} social post tasks.`);
+}
+
 function normalizeSocialListingType(value) {
   const text = String(value || "").trim().toLowerCase();
   if (text.includes("coming")) return "Coming Soon";
@@ -846,19 +942,25 @@ function isDateThisWeek(isoDate) {
 }
 
 function getSocialPostTitle(post) {
-  return `${post.listingType || "Listing"} • ${post.propertyAddress || "No address"} • ${post.agentName || "No agent"}`;
+  return `${post.listingType || "Listing"} \u2022 ${post.propertyAddress || "No address"} \u2022 ${post.agentName || "No agent"}`;
 }
 
 function getSocialPostById(id) {
   return state.socialPosts.find((post) => post.id === id);
 }
 
-function updateSocialPost(id, patch) {
+function updateSocialPost(id, patch, options = {}) {
   const post = getSocialPostById(id);
   if (!post) return null;
   Object.assign(post, patch);
   saveState();
   renderSocialPosts();
+  if (options.sync !== false) {
+    syncSocialPostUpdate(id, patch).catch((error) => {
+      setSocialPostSyncStatus(`Social post update failed: ${error.message}`);
+      showToast("Social post sheet update failed.");
+    });
+  }
   return post;
 }
 
@@ -964,6 +1066,7 @@ function renderSocialPosts() {
   if (!Array.isArray(state.socialPosts)) state.socialPosts = [];
   renderSocialPostSummary();
   renderSocialPostFilters();
+  setSocialPostSyncStatus(socialPostsSyncUrl ? "Social posts sync: ready." : "Social posts sync: local only until the Apps Script URL is added.");
   const list = document.querySelector("#socialPostTrackerList");
   if (!list) return;
   const posts = getVisibleSocialPosts();
@@ -1044,6 +1147,7 @@ function createLocalSocialPostFromForm() {
   });
   saveState();
   renderSocialPosts();
+  syncSocialPostUpdate(id, { statusWorkflow: "Needs Design", graphicsCreated: "NO", posted: "NO" }).catch(() => {});
   closeLocalSocialPostModal();
   showToast("Local social post task added.");
 }
@@ -1836,6 +1940,13 @@ document.addEventListener("DOMContentLoaded", () => {
       status.textContent = `Could not send automatically. ${error.message}`;
       showToast("Brochure request send failed.");
     }
+  });
+
+  document.querySelector("#syncSocialPostsBtn")?.addEventListener("click", () => {
+    syncSocialPostsFromSheet().catch((error) => {
+      setSocialPostSyncStatus(`Social post sync failed: ${error.message}`);
+      showToast("Social post sync failed.");
+    });
   });
 
   document.querySelector("#addLocalSocialPostBtn")?.addEventListener("click", openLocalSocialPostModal);
