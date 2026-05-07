@@ -2,3 +2,6 @@ canva-token.json
 canva-oauth-state.json
 canva-local.env
 exports/
+canva-server*.log
+video-frames/
+photo-prep-check.png
