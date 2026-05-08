@@ -8,6 +8,7 @@ This is a simple local dashboard for daily Virtual Assistant work with Ari and T
 - `styles.css` controls the clean responsive interface.
 - `app.js` contains the task data model, reminder logic, local storage, templates, caption builder, and checklist behavior.
 - The Google Sync tab contains a snapshot pulled through Codex Gmail, Calendar, and Drive connectors.
+- The app uses a left side navigation menu on desktop with Home, Listings, Trivia, Payments, Tasks, Attendance, Compliance, Reports, Templates, and Settings. On smaller screens, the menu collapses behind a Menu button.
 
 ## Recommended Storage
 

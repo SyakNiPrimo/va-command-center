@@ -900,7 +900,7 @@ function renderFocus() {
 function renderTasks() {
   const categoryFilter = document.querySelector("#categoryFilter").value;
   const statusFilter = document.querySelector("#statusFilter").value;
-  const taskList = document.querySelector("#taskList");
+  const taskLists = document.querySelectorAll("[data-task-list]");
 
   const filtered = state.tasks.filter((task) => {
     const categoryMatch = categoryFilter === "All" || task.category === categoryFilter;
@@ -909,7 +909,9 @@ function renderTasks() {
   });
 
   if (!filtered.length) {
-    taskList.innerHTML = `<div class="empty-state">No tasks match these filters.</div>`;
+    taskLists.forEach((taskList) => {
+      taskList.innerHTML = `<div class="empty-state">No tasks match these filters.</div>`;
+    });
     return;
   }
 
@@ -934,7 +936,7 @@ function renderTasks() {
     </tr>
   `).join("");
 
-  taskList.innerHTML = `
+  const table = `
     <table class="work-table">
       <thead>
         <tr>
@@ -949,6 +951,9 @@ function renderTasks() {
       <tbody>${rows}</tbody>
     </table>
   `;
+  taskLists.forEach((taskList) => {
+    taskList.innerHTML = table;
+  });
 }
 
 function formatDateTime(value) {
@@ -2798,7 +2803,7 @@ document.addEventListener("DOMContentLoaded", () => {
     showToast("Task added.");
   });
 
-  document.querySelector("#taskList").addEventListener("click", (event) => {
+  document.querySelectorAll("[data-task-list]").forEach((taskList) => taskList.addEventListener("click", (event) => {
     const button = event.target.closest("button");
     if (!button) return;
     const task = state.tasks.find((item) => item.id === button.dataset.id);
@@ -2809,7 +2814,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (button.dataset.action === "delete") state.tasks = state.tasks.filter((item) => item.id !== task.id);
     saveState();
     renderAll();
-  });
+  }));
 
   document.querySelector("#syncEmails").addEventListener("click", (event) => {
     const button = event.target.closest("button[data-sync-task]");
@@ -3231,12 +3236,20 @@ document.addEventListener("DOMContentLoaded", () => {
     photoPrepSlots.forEach((slot) => generatePhotoSlot(slot));
   });
 
+  document.querySelector("#sidebarToggle")?.addEventListener("click", () => {
+    const sidebar = document.querySelector("#sidebarNav");
+    const isOpen = sidebar?.classList.toggle("open");
+    document.querySelector("#sidebarToggle").setAttribute("aria-expanded", String(Boolean(isOpen)));
+  });
+
   document.querySelectorAll(".tab").forEach((tab) => {
     tab.addEventListener("click", () => {
       document.querySelectorAll(".tab").forEach((item) => item.classList.remove("active"));
       document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.remove("active"));
       tab.classList.add("active");
-      document.querySelector(`#${tab.dataset.tab}`).classList.add("active");
+      document.querySelector(`#${tab.dataset.tab}`)?.classList.add("active");
+      document.querySelector("#sidebarNav")?.classList.remove("open");
+      document.querySelector("#sidebarToggle")?.setAttribute("aria-expanded", "false");
     });
   });
 });
