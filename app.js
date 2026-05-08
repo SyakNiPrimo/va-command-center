@@ -26,6 +26,12 @@ const gmailListingSyncUrl = "";
 const brochureEmailSendUrl = "https://script.google.com/macros/s/AKfycbzQvm4KYNm9qkTeXXUzTYbuQlL-6aU5FdIGO172ovZZ-HVZfqxALkoY_vhDiguV4qHdAQ/exec";
 const brochureEmailCc = "ralph@jakobovgroup.com";
 const brochureEmailSignature = "Best,\nBen Tiaga";
+const authConfig = {
+  username: "ben",
+  password: "change-this-password"
+};
+const authLocalStorageKey = "vaCommandCenterAuth";
+const authSessionStorageKey = "vaCommandCenterSessionAuth";
 const brandConfig = {
   mainBrandName: "The Jakobov Group",
   appName: "VA Command Center",
@@ -525,6 +531,82 @@ function showToast(message) {
   window.setTimeout(() => toast.classList.remove("show"), 2200);
 }
 
+function getStoredAuthSession() {
+  const sessionValue = sessionStorage.getItem(authSessionStorageKey);
+  const localValue = localStorage.getItem(authLocalStorageKey);
+  const raw = sessionValue || localValue;
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed?.authenticated) return null;
+    return {
+      ...parsed,
+      sessionType: sessionValue ? "Session storage" : "Local storage"
+    };
+  } catch {
+    sessionStorage.removeItem(authSessionStorageKey);
+    localStorage.removeItem(authLocalStorageKey);
+    return null;
+  }
+}
+
+function setAuthSession(username, remember) {
+  const session = {
+    authenticated: true,
+    username,
+    loginAt: new Date().toISOString()
+  };
+  sessionStorage.removeItem(authSessionStorageKey);
+  localStorage.removeItem(authLocalStorageKey);
+  const key = remember ? authLocalStorageKey : authSessionStorageKey;
+  const storage = remember ? localStorage : sessionStorage;
+  storage.setItem(key, JSON.stringify(session));
+}
+
+function clearAuthSession() {
+  sessionStorage.removeItem(authSessionStorageKey);
+  localStorage.removeItem(authLocalStorageKey);
+}
+
+function applyAuthState() {
+  const session = getStoredAuthSession();
+  const isAuthenticated = Boolean(session);
+  document.body.classList.toggle("is-authenticated", isAuthenticated);
+  document.body.classList.toggle("is-locked", !isAuthenticated);
+  const loginScreen = document.querySelector("#loginScreen");
+  const appFrame = document.querySelector("#appFrame");
+  if (loginScreen) loginScreen.hidden = isAuthenticated;
+  if (appFrame) appFrame.hidden = !isAuthenticated;
+  renderSecuritySettings();
+  renderFooterStatus();
+  return isAuthenticated;
+}
+
+function handleLogin(event) {
+  event.preventDefault();
+  const username = document.querySelector("#loginUsername")?.value.trim() || "";
+  const password = document.querySelector("#loginPassword")?.value || "";
+  const remember = Boolean(document.querySelector("#rememberLogin")?.checked);
+  const error = document.querySelector("#loginError");
+  if (username === authConfig.username && password === authConfig.password) {
+    setAuthSession(username, remember);
+    if (error) error.textContent = "";
+    document.querySelector("#loginForm")?.reset();
+    applyAuthState();
+    renderAll();
+    showToast("Welcome back.");
+    return;
+  }
+  if (error) error.textContent = "Login failed. Check the username and password.";
+}
+
+function handleLogout() {
+  clearAuthSession();
+  applyAuthState();
+  showToast("Logged out.");
+  window.setTimeout(() => document.querySelector("#loginUsername")?.focus(), 50);
+}
+
 function setDailyState() {
   if (!Array.isArray(state.socialPosts)) state.socialPosts = [];
   if (!state.agentProfiles) state.agentProfiles = {};
@@ -578,12 +660,37 @@ function renderMeeting() {
     day: "numeric",
     year: "numeric"
   }) + " Arizona time";
-  document.querySelector("#meetingType").textContent = state.dailyState.meetingSent ? `${info.type} sent` : info.type;
+  const meetingType = document.querySelector("#meetingType");
+  if (meetingType) meetingType.textContent = state.dailyState.meetingSent ? `${info.type} sent` : info.type;
   document.querySelector("#meetingTitle").textContent = info.title;
   document.querySelector("#meetingTime").textContent = info.meetingTime;
   document.querySelector("#meetingDescription").textContent = info.description;
   document.querySelector("#meetingMessage").value = info.message;
   renderWhatsappReminder();
+  renderHeaderStatus();
+}
+
+function renderHeaderStatus() {
+  const chips = document.querySelector("#headerStatusChips");
+  if (!chips) return;
+  const info = getMeetingInfo();
+  const chipItems = [
+    state.dailyState.meetingSent ? `${info.type} sent` : info.type
+  ];
+  if (isFridayArizona()) {
+    const payment = getCurrentPaymentRequest();
+    chipItems.push(payment.sent ? "Payment Sent" : "Payment Due");
+  }
+  if (isWednesdayArizona()) {
+    const trivia = getCurrentTriviaPost();
+    if (!["Posted", "Completed"].includes(trivia?.status)) chipItems.push("Trivia Due");
+  }
+  chips.innerHTML = chipItems.map((item) => `<span class="status-pill">${escapeHTML(item)}</span>`).join("");
+}
+
+function updateHeaderPageTitle(title = "Dashboard") {
+  const header = document.querySelector("#headerPageTitle");
+  if (header) header.textContent = title;
 }
 
 function isWhatsappReminderTime(date = new Date()) {
@@ -1100,6 +1207,35 @@ function renderBrandingSettings() {
       </div>
     `;
   }
+}
+
+function renderSecuritySettings() {
+  const container = document.querySelector("#securitySettings");
+  if (!container) return;
+  const session = getStoredAuthSession();
+  const rows = [
+    ["Login enabled", "Yes"],
+    ["Current user", session?.username || "Not logged in"],
+    ["Session type", session?.sessionType || "None"]
+  ];
+  container.innerHTML = rows.map(([label, value]) => `
+    <div class="security-setting-card">
+      <span>${escapeHTML(label)}</span>
+      <strong>${escapeHTML(value)}</strong>
+    </div>
+  `).join("");
+}
+
+function renderFooterStatus() {
+  const year = document.querySelector("#footerYear");
+  if (year) year.textContent = String(new Date().getFullYear());
+  const google = document.querySelector("#footerGoogleStatus");
+  if (google) {
+    const connected = Boolean(attendanceSyncUrl || socialPostsSyncUrl || gmailListingSyncUrl || brochureEmailSendUrl);
+    google.textContent = connected ? "Google Sync Connected" : "Google Sync Missing";
+  }
+  const caption = document.querySelector("#footerCaptionStatus");
+  if (caption) caption.textContent = "Caption Server Missing";
 }
 
 function createAttendanceSession(date = document.querySelector("#attendanceDate")?.value || todayArizonaISO()) {
@@ -2545,6 +2681,8 @@ function renderAll() {
   renderEndOfDayReport();
   renderSocialPosts();
   renderBrandingSettings();
+  renderSecuritySettings();
+  renderFooterStatus();
   renderTriviaPost();
   renderVideoTasks();
   renderPhotoPrepSlots();
@@ -2827,12 +2965,16 @@ function initControls() {
 
 document.addEventListener("DOMContentLoaded", () => {
   initControls();
+  applyAuthState();
   const openVideoTemplateLink = document.querySelector("#openVideoTemplateLink");
   if (openVideoTemplateLink) {
     openVideoTemplateLink.href = canvaVideoTemplate.editUrl;
     openVideoTemplateLink.title = `${canvaVideoTemplate.name} Canva template`;
   }
   renderAll();
+
+  document.querySelector("#loginForm")?.addEventListener("submit", handleLogin);
+  document.querySelector("#logoutBtn")?.addEventListener("click", handleLogout);
 
   document.querySelector("#copyMeetingBtn").addEventListener("click", () => {
     copyText(getMeetingInfo().message);
@@ -3363,6 +3505,7 @@ document.addEventListener("DOMContentLoaded", () => {
       document.querySelectorAll(".tab-panel").forEach((panel) => panel.classList.remove("active"));
       tab.classList.add("active");
       document.querySelector(`#${tab.dataset.tab}`)?.classList.add("active");
+      updateHeaderPageTitle(tab.childNodes[0]?.textContent.trim() || "Dashboard");
       document.querySelector("#sidebarNav")?.classList.remove("open");
       document.querySelector("#sidebarToggle")?.setAttribute("aria-expanded", "false");
     });

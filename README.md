@@ -39,6 +39,26 @@ Later upgrade paths:
 - Airtable or Notion for a database style workflow.
 - Firebase or Supabase for multi device sync.
 
+## Basic Local Login
+
+The dashboard now opens to a simple local login screen before showing the app.
+
+Default local credentials are stored in `app.js`:
+
+- Username: `ben`
+- Password: `change-this-password`
+
+To change them, edit the `authConfig` object in `app.js`.
+
+The login session uses:
+
+- `sessionStorage` when **Remember me** is unchecked.
+- `localStorage` when **Remember me** is checked.
+
+Logout clears both local and session auth records and returns the app to the login screen.
+
+Important security note: this is only basic internal protection. Because the username and password live in frontend JavaScript, it is not secure for public hosting. Before using this as a truly public or sensitive app, upgrade to real authentication such as Supabase Auth, Firebase Auth, Auth0, or a server based login.
+
 ## Google Sync Notes
 
 The Settings tab has a Google sync snapshot with:

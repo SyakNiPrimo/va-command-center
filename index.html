@@ -7,18 +7,50 @@
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header class="topbar">
-    <button id="sidebarToggle" class="sidebar-toggle" type="button" aria-expanded="false" aria-controls="sidebarNav">Menu</button>
-    <div>
-      <h1>VA Command Center</h1>
-      <p class="topbar-subtitle">Daily operations dashboard</p>
-    </div>
-    <div class="today-card">
-      <span id="todayLabel">Today</span>
-      <strong id="meetingType">Daily Team Meeting</strong>
-      <button id="copyMeetingBtn" type="button">Copy Message</button>
-    </div>
-  </header>
+  <section id="loginScreen" class="login-screen" aria-label="Login">
+    <form id="loginForm" class="login-card">
+      <img src="assets/branding/jakobov-white.svg" alt="The Jakobov Group" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
+      <strong hidden>The Jakobov Group</strong>
+      <div>
+        <p class="eyebrow">Internal Access</p>
+        <h1>VA Command Center</h1>
+        <p>Daily operations dashboard</p>
+      </div>
+      <label>
+        Email or username
+        <input id="loginUsername" autocomplete="username" required placeholder="ben">
+      </label>
+      <label>
+        Password
+        <input id="loginPassword" type="password" autocomplete="current-password" required placeholder="Password">
+      </label>
+      <label class="remember-field">
+        <input id="rememberLogin" type="checkbox">
+        <span>Remember me on this device</span>
+      </label>
+      <p id="loginError" class="login-error" role="alert"></p>
+      <button type="submit">Login</button>
+      <p class="login-note">Basic local protection only. Use real authentication before public hosting.</p>
+    </form>
+  </section>
+
+  <div id="appFrame" class="app-frame" hidden>
+    <header class="topbar">
+      <button id="sidebarToggle" class="sidebar-toggle" type="button" aria-expanded="false" aria-controls="sidebarNav">Menu</button>
+      <div>
+        <p class="eyebrow">VA Command Center</p>
+        <h1 id="headerPageTitle">Dashboard</h1>
+        <p class="topbar-subtitle">Daily operations dashboard</p>
+      </div>
+      <div class="header-utility">
+        <span id="todayLabel">Today</span>
+        <div id="headerStatusChips" class="header-status-chips">
+          <span id="meetingType" class="status-pill">Daily Team Meeting</span>
+        </div>
+        <button id="copyMeetingBtn" type="button" class="quiet">Copy Meeting</button>
+        <button id="logoutBtn" type="button" class="logout-button">Logout</button>
+      </div>
+    </header>
 
   <div class="app-shell">
     <aside id="sidebarNav" class="sidebar-nav" aria-label="Main navigation">
@@ -47,7 +79,7 @@
         <span class="home-brand-mark" aria-hidden="true"></span>
         <div>
           <p class="eyebrow">Daily Operations</p>
-          <h2>Today’s Operations</h2>
+          <h2>Today's Operations</h2>
           <p class="section-note">Tasks, listings, payments, attendance, and reports in one place.</p>
         </div>
       </article>
@@ -225,6 +257,16 @@
         <button id="importSyncTasksBtn" type="button">Add Suggested Tasks</button>
       </div>
       <div class="sync-summary" id="syncSummary"></div>
+      <article class="panel flat security-settings-panel">
+        <div class="section-head">
+          <div>
+            <h3>Security</h3>
+            <p class="section-note">Basic local login status for this browser.</p>
+          </div>
+        </div>
+        <div id="securitySettings" class="security-settings-grid"></div>
+        <p class="warning-line">Local login is for basic internal protection only. Use real authentication before public hosting.</p>
+      </article>
       <article class="panel flat branding-settings-panel">
         <div class="section-head">
           <div>
@@ -591,6 +633,21 @@
       </div>
     </section>
   </main>
+  </div>
+
+  <footer class="app-footer">
+    <div>
+      <strong>The Jakobov Group VA Command Center</strong>
+      <span>Internal operations dashboard</span>
+    </div>
+    <div class="footer-meta">
+      <span id="footerYear">2026</span>
+      <span>Built for internal VA workflow tracking</span>
+      <span id="footerLocalStatus">Local Mode</span>
+      <span id="footerGoogleStatus">Google Sync Missing</span>
+      <span id="footerCaptionStatus">Caption Server Missing</span>
+    </div>
+  </footer>
   </div>
 
   <div id="toast" role="status" aria-live="polite"></div>
