@@ -11,8 +11,9 @@ const REVIEW_LABEL = "Needs Review Listing Updates";
 const SOCIAL_HEADERS = [
   "ID", "Date Received", "Agent Name", "Listing Type", "MLS#", "MLS Link", "Property Address", "Price",
   "Bedrooms", "Bathrooms", "Approximate Square Feet", "MLS Description", "Duplicate Validation", "Status (Workflow)",
-  "Logo Type", "Agent Photo Confirmed", "Agent Name Confirmed", "Agent Phone Confirmed", "Agent Email Confirmed",
-  "Agent Instagram Handle", "Subject", "Email Template", "Canva Video Link", "Graphics Created?", "Posted", "Date Posted",
+  "Logo Type", "Agent Headshot Link", "Agent Headshot File", "Agent Headshot Found", "Agent Headshot Confirmed", "Agent Name Confirmed", "Agent Phone Confirmed", "Agent Email Confirmed",
+  "Agent Instagram Handle",
+  "Agent Instagram Handle Confirmed", "Subject", "Email Template", "Canva Video Link", "Graphics Created?", "Posted", "Date Posted",
   "Graphics Link", "Caption", "IG Post Link", "Source Email ID", "Source Email Subject", "Source Email Date", "Date Processed"
 ];
 

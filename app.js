@@ -83,6 +83,52 @@ const socialPhotoSlots = [
   "Exterior Yard or Best Feature"
 ];
 const captionServerUrl = "http://127.0.0.1:8791/generate-caption";
+const agentHeadshotsFolderUrl = "https://drive.google.com/drive/folders/1upm9VVosOnJTwSaa36HWhnfeVxWy5XBB?usp=sharing";
+const agentHeadshotFiles = [
+  "Alijah.jpeg",
+  "Angela.jpeg",
+  "Kelly.jpeg",
+  "Kath.jpeg",
+  "Kath2.jpeg",
+  "Mauricio.jpeg",
+  "Katelyn.jpeg",
+  "Sam.jpeg",
+  "Stephen.jpeg",
+  "Chris.jpeg",
+  "Tyler.jpeg",
+  "James.jpeg",
+  "James2.jpeg",
+  "Marissa.jpeg",
+  "Catherine.jpeg",
+  "Catherine2.jpeg",
+  "Steph.jpeg",
+  "Joe.jpeg",
+  "Teddy.jpeg",
+  "Shayna.jpeg",
+  "Steele.jpeg",
+  "Ari1.jpeg",
+  "Ari2.jpeg",
+  "Ari3.jpeg",
+  "Svetlana.jpeg"
+];
+const agentHeadshotAliases = {
+  steele: ["Steele.jpeg"],
+  ari: ["Ari1.jpeg", "Ari2.jpeg", "Ari3.jpeg"],
+  arizona: ["Ari1.jpeg", "Ari2.jpeg", "Ari3.jpeg"],
+  jakobov: ["Ari1.jpeg", "Ari2.jpeg", "Ari3.jpeg"],
+  stephanie: ["Steph.jpeg"],
+  steph: ["Steph.jpeg"],
+  katherine: ["Kath.jpeg", "Kath2.jpeg"],
+  kath: ["Kath.jpeg", "Kath2.jpeg"],
+  kathryn: ["Kath.jpeg", "Kath2.jpeg"],
+  catherine: ["Catherine.jpeg", "Catherine2.jpeg"],
+  james: ["James.jpeg", "James2.jpeg"],
+  samuel: ["Sam.jpeg"],
+  sam: ["Sam.jpeg"],
+  josef: ["Joe.jpeg"],
+  joseph: ["Joe.jpeg"],
+  joe: ["Joe.jpeg"]
+};
 let activeSocialPostFilter = "All";
 let socialPostSearchTerm = "";
 
@@ -855,6 +901,43 @@ function setSocialPostSyncStatus(message) {
   if (status) status.textContent = message;
 }
 
+function getDriveFolderFileUrl(fileName) {
+  return fileName ? `${agentHeadshotsFolderUrl}#${encodeURIComponent(fileName)}` : "";
+}
+
+function normalizeAgentToken(value) {
+  return String(value || "").toLowerCase().replace(/[^a-z\s]/g, " ").trim().split(/\s+/).filter(Boolean);
+}
+
+function getHeadshotCandidates(agentName) {
+  const tokens = normalizeAgentToken(agentName);
+  const candidates = new Set();
+  tokens.forEach((token) => {
+    (agentHeadshotAliases[token] || []).forEach((file) => candidates.add(file));
+    const direct = agentHeadshotFiles.filter((file) => file.toLowerCase().replace(/\d?\.jpe?g$/, "") === token);
+    direct.forEach((file) => candidates.add(file));
+  });
+  if (!candidates.size && tokens.length) {
+    const first = tokens[0];
+    agentHeadshotFiles
+      .filter((file) => file.toLowerCase().startsWith(first))
+      .forEach((file) => candidates.add(file));
+  }
+  return Array.from(candidates);
+}
+
+function getSuggestedHeadshot(post) {
+  const selected = post.agentHeadshotFile || post.agentHeadshotLink || "";
+  if (selected) return { selected, candidates: getHeadshotCandidates(post.agentName) };
+  const candidates = getHeadshotCandidates(post.agentName);
+  return { selected: candidates[0] || "", candidates };
+}
+
+function getHeadshotLinkFromSelection(value) {
+  if (!value) return "";
+  if (/^https?:\/\//i.test(value)) return value;
+  return getDriveFolderFileUrl(value);
+}
 function parseMoneyValue(value) {
   const number = Number(String(value || "").replace(/[^0-9.]/g, ""));
   return Number.isFinite(number) ? number : 0;
@@ -878,7 +961,7 @@ function getAgentProfile(agentName) {
 function getAgentWarnings(post) {
   const profile = getAgentProfile(post.agentName);
   const warnings = [];
-  if (!profile.photo && post.agentPhotoConfirmed !== "YES") warnings.push("Agent photo missing or not confirmed");
+  if (!post.agentHeadshotLink && !getSuggestedHeadshot(post).selected) warnings.push("Agent headshot missing. Select manually before finalizing design.");
   if (!profile.phone && post.agentPhoneConfirmed !== "YES") warnings.push("Agent phone missing or not confirmed");
   if (!profile.email && post.agentEmailConfirmed !== "YES") warnings.push("Agent email missing or not confirmed");
   if (!profile.instagram && !post.agentInstagramHandle) warnings.push("Agent Instagram handle missing");
@@ -904,7 +987,10 @@ function mapSocialSheetRow(row) {
     statusWorkflow: row["Status (Workflow)"] || "New",
     subject: row.Subject || "",
     emailTemplate: row["Email Template"] || "",
-    agentPhotoConfirmed: row["Agent Photo Confirmed"] || "NO",
+    agentHeadshotLink: row["Agent Headshot Link"] || row["Agent Photo Link"] || "",
+    agentHeadshotFile: row["Agent Headshot File"] || "",
+    agentHeadshotFound: row["Agent Headshot Found"] || "",
+    agentHeadshotConfirmed: row["Agent Headshot Confirmed"] || row["Agent Photo Confirmed"] || "NO",
     agentNameConfirmed: row["Agent Name Confirmed"] || "NO",
     agentPhoneConfirmed: row["Agent Phone Confirmed"] || "NO",
     agentEmailConfirmed: row["Agent Email Confirmed"] || "NO",
@@ -937,7 +1023,11 @@ function socialPatchToSheetFields(patch) {
     squareFeet: "Approximate Square Feet",
     mlsDescription: "MLS Description",
     logoType: "Logo Type",
-    agentPhotoConfirmed: "Agent Photo Confirmed",
+    agentHeadshotLink: "Agent Headshot Link",
+    agentHeadshotFile: "Agent Headshot File",
+    agentHeadshotFound: "Agent Headshot Found",
+    agentHeadshotConfirmed: "Agent Headshot Confirmed",
+    agentInstagramHandleConfirmed: "Agent Instagram Handle Confirmed",
     agentNameConfirmed: "Agent Name Confirmed",
     agentPhoneConfirmed: "Agent Phone Confirmed",
     agentEmailConfirmed: "Agent Email Confirmed",
@@ -1117,12 +1207,40 @@ function socialTextareaField(label, field, value) {
   `;
 }
 
+function renderHeadshotSelector(post) {
+  const suggestion = getSuggestedHeadshot(post);
+  const candidates = suggestion.candidates.length ? suggestion.candidates : agentHeadshotFiles;
+  const selected = post.agentHeadshotFile || (suggestion.selected && !/^https?:\/\//i.test(suggestion.selected) ? suggestion.selected : "");
+  const link = post.agentHeadshotLink || getHeadshotLinkFromSelection(selected || suggestion.selected);
+  return `
+    <div class="headshot-selector">
+      <div>
+        <span>Official source</span>
+        <a href="${escapeHTML(agentHeadshotsFolderUrl)}" target="_blank" rel="noreferrer">Open Agent Headshots folder</a>
+      </div>
+      <label>
+        Suggested headshot
+        <select data-social-edit="agentHeadshotFile">
+          <option value="">Select manually</option>
+          ${candidates.map((file) => `<option value="${escapeHTML(file)}" ${file === selected ? "selected" : ""}>${escapeHTML(file)}</option>`).join("")}
+        </select>
+      </label>
+      <label>
+        Headshot link override
+        <input data-social-edit="agentHeadshotLink" value="${escapeHTML(link)}" placeholder="Paste Drive file link or keep suggested folder reference">
+      </label>
+      <p class="small-muted">${suggestion.candidates.length > 1 ? "Multiple possible headshots found. Choose the correct one before Canva design." : suggestion.selected ? "Suggested from agent name." : "Agent headshot missing. Select manually before finalizing design."}</p>
+    </div>
+  `;
+}
 function renderVerificationChecks(post) {
   const checks = [
-    ["agentPhotoConfirmed", "Correct agent photo"],
+    ["agentHeadshotFound", "Agent Headshot Found"],
+    ["agentHeadshotConfirmed", "Agent Headshot Confirmed"],
     ["agentNameConfirmed", "Correct agent name"],
     ["agentPhoneConfirmed", "Correct phone number"],
-    ["agentEmailConfirmed", "Correct email address"]
+    ["agentEmailConfirmed", "Correct email address"],
+    ["agentInstagramHandleConfirmed", "Agent Instagram Handle Confirmed"]
   ];
   return checks.map(([field, label]) => `
     <label class="mini-check">
@@ -1188,6 +1306,7 @@ function renderSocialPostCard(post) {
       <details class="listing-detail-panel" open>
         <summary>Listing Details And Agent Check</summary>
         <div class="social-edit-grid">
+          ${renderHeadshotSelector(post)}
           ${socialInputField("Agent Instagram Handle", "agentInstagramHandle", post.agentInstagramHandle || getAgentProfile(post.agentName).instagram || "")}
           ${socialInputField("Price", "price", post.price || "")}
           ${socialInputField("Bedrooms", "bedrooms", post.bedrooms || "")}
@@ -1339,6 +1458,8 @@ function collectSocialPostDetailsFromCard(post) {
     patch[input.dataset.socialEdit] = input.value.trim();
   });
   patch.logoType = getLogoTypeForPrice(patch.price || post.price);
+  if (patch.agentHeadshotFile && !patch.agentHeadshotLink) patch.agentHeadshotLink = getDriveFolderFileUrl(patch.agentHeadshotFile);
+  if (patch.agentHeadshotFile || patch.agentHeadshotLink) patch.agentHeadshotFound = "YES";
   return patch;
 }
 
@@ -1385,6 +1506,7 @@ Status: ${post.listingType || "Not set"}
 Agent: ${post.agentName || "Not set"}
 MLS: ${post.mlsNumber || "Not set"}
 Logo: ${post.logoType || getLogoTypeForPrice(post.price)}
+Agent headshot: ${post.agentHeadshotLink || getHeadshotLinkFromSelection(post.agentHeadshotFile) || "Not selected"}
 Canva video: ${post.canvaVideoLink || post.graphicsLink || "Not added"}
 Processed photos: ${photoCount}/6
 

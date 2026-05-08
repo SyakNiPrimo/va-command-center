@@ -259,3 +259,21 @@ Caption server setup:
 4. Keep the server window open while using **Generate Caption** in the Social tab.
 
 The OpenAI API key is never stored in frontend files.
+## Agent Headshots Source
+
+Official Google Drive folder:
+
+`https://drive.google.com/drive/folders/1upm9VVosOnJTwSaa36HWhnfeVxWy5XBB?usp=sharing`
+
+The app stores this as `agentHeadshotsFolderUrl` and uses the known file list to suggest headshots from the agent name. Examples:
+
+- Steele Nash -> `Steele.jpeg`
+- Ari Jakobov -> `Ari1.jpeg`, `Ari2.jpeg`, or `Ari3.jpeg`
+- Stephanie Pieper -> `Steph.jpeg`
+- Katherine -> `Kath.jpeg` or `Kath2.jpeg`
+- James -> `James.jpeg` or `James2.jpeg`
+- Catherine -> `Catherine.jpeg` or `Catherine2.jpeg`
+- Samuel -> `Sam.jpeg`
+- Josef or Josef Babadzhanov -> `Joe.jpeg`
+
+Each Social listing card shows the suggested headshot, allows manual override, and saves the selected headshot file/link for Canva video design work. If no match is found, the card warns: `Agent headshot missing. Select manually before finalizing design.`

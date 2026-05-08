@@ -1002,6 +1002,39 @@ main {
   min-height: 110px;
 }
 
+
+.headshot-selector {
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 8px;
+  border: 1px solid #b7d7cf;
+  border-radius: 8px;
+  background: #edf7f6;
+  padding: 8px;
+}
+
+.headshot-selector > div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.headshot-selector span {
+  color: var(--muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.headshot-selector a {
+  color: var(--accent-dark);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+.headshot-selector .small-muted {
+  grid-column: 1 / -1;
+}
 .mini-check-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
