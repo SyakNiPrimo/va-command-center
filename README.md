@@ -111,6 +111,8 @@ The Social Media tab also includes Instagram Photo Prep for six listing photos:
 
 Upload each photo, then generate a 1080 x 1350 JPG with the same image blurred in the background and the sharp property photo centered in front. This runs in the browser, so the photos stay on the computer.
 
+Photo prep is local canvas processing only. It does not use OpenAI image generation because property details should not be altered. The main property photo is scaled to fit inside the Instagram frame without cropping important details, then exported as a separate JPG download for each slot.
+
 ## Attendance Tracking
 
 The Attendance tab tracks morning Zoom and Office attendance in a spreadsheet-style table with checkboxes per agent per selected date.

@@ -86,6 +86,13 @@ const socialPhotoSlots = [
   "Bathroom",
   "Exterior Yard or Best Feature"
 ];
+const instagramPhotoOutput = {
+  width: 1080,
+  height: 1350,
+  foregroundMaxWidth: 1000,
+  foregroundMaxHeight: 1020,
+  jpegQuality: 0.92
+};
 const captionServerUrl = "http://127.0.0.1:8791/generate-caption";
 const agentHeadshotsFolderUrl = "https://drive.google.com/drive/folders/1upm9VVosOnJTwSaa36HWhnfeVxWy5XBB?usp=sharing";
 const agentHeadshotFiles = [
@@ -1490,16 +1497,18 @@ function renderPhotoPrepForPost(post) {
   const processed = post.processedPhotos || {};
   return socialPhotoSlots.map((slot) => {
     const dataUrl = processed[slot] || "";
+    const fileName = makePhotoFileName(slot, post.propertyAddress || post.mlsNumber || "listing");
     return `
       <article class="listing-photo-slot">
         <div>
           <strong>${escapeHTML(slot)}</strong>
-          <span>${dataUrl ? "Ready" : "Needs photo"}</span>
+          <span>${dataUrl ? "Ready, 1080 x 1350 JPG" : "Needs photo"}</span>
         </div>
         <input type="file" accept="image/*" data-listing-photo="${escapeHTML(slot)}" data-id="${escapeHTML(post.id)}">
         <div class="listing-photo-preview" data-listing-photo-preview="${escapeHTML(post.id)}-${escapeHTML(slot)}">
           ${dataUrl ? `<img src="${dataUrl}" alt="${escapeHTML(slot)} preview">` : `<span>No processed image yet.</span>`}
         </div>
+        ${dataUrl ? `<a class="download-link" href="${dataUrl}" download="${escapeHTML(fileName)}">Download JPG</a>` : ""}
       </article>
     `;
   }).join("");
@@ -2003,7 +2012,7 @@ function drawCoverImage(ctx, image, width, height) {
 }
 
 function drawContainImage(ctx, image, width, height, maxHeight) {
-  let drawWidth = width;
+  let drawWidth = Math.min(width, instagramPhotoOutput.foregroundMaxWidth);
   let drawHeight = image.height * (drawWidth / image.width);
 
   if (drawHeight > maxHeight) {
@@ -2017,22 +2026,26 @@ function drawContainImage(ctx, image, width, height, maxHeight) {
 async function createInstagramPhoto(file) {
   const image = await readImageFile(file);
   const canvas = document.createElement("canvas");
-  canvas.width = 1080;
-  canvas.height = 1350;
+  canvas.width = instagramPhotoOutput.width;
+  canvas.height = instagramPhotoOutput.height;
   const ctx = canvas.getContext("2d");
 
-  ctx.filter = "blur(30px) brightness(0.82)";
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.filter = "blur(32px) brightness(0.82) saturate(1.04)";
   drawCoverImage(ctx, image, canvas.width, canvas.height);
   ctx.filter = "none";
   ctx.fillStyle = "rgba(17, 24, 39, 0.10)";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
-  drawContainImage(ctx, image, canvas.width, canvas.height, 850);
+  drawContainImage(ctx, image, canvas.width, canvas.height, instagramPhotoOutput.foregroundMaxHeight);
 
-  return canvas.toDataURL("image/jpeg", 0.92);
+  return canvas.toDataURL("image/jpeg", instagramPhotoOutput.jpegQuality);
 }
 
-function makePhotoFileName(slot) {
-  return `${slot.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "")}-instagram.jpg`;
+function makePhotoFileName(slot, prefix = "") {
+  const safePrefix = String(prefix || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 48);
+  const safeSlot = slot.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+  return `${safePrefix ? `${safePrefix}-` : ""}${safeSlot}-1080x1350.jpg`;
 }
 
 async function generatePhotoSlot(slot) {
