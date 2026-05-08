@@ -26,6 +26,18 @@ const gmailListingSyncUrl = "";
 const brochureEmailSendUrl = "https://script.google.com/macros/s/AKfycbzQvm4KYNm9qkTeXXUzTYbuQlL-6aU5FdIGO172ovZZ-HVZfqxALkoY_vhDiguV4qHdAQ/exec";
 const brochureEmailCc = "ralph@jakobovgroup.com";
 const brochureEmailSignature = "Best,\nBen Tiaga";
+const brandConfig = {
+  mainBrandName: "The Jakobov Group",
+  appName: "VA Command Center",
+  sidebarLogo: "assets/branding/jakobov-white.svg",
+  lightBackgroundLogo: "assets/branding/jakobov-dark.svg",
+  luxuryLogo: "assets/branding/exp-luxury.svg",
+  regularListingLogo: "assets/branding/exp-realty.svg",
+  fallbackLogo: "assets/branding/blank.svg",
+  primaryBrandColor: "#111111",
+  accentBrandColor: "#c8ad5f",
+  brandingMode: "Jakobov Internal"
+};
 let attendanceSyncTimer = null;
 const canvaVideoTemplate = {
   name: "Social Media Video",
@@ -980,6 +992,49 @@ function renderSync() {
 
 }
 
+function renderBrandingSettings() {
+  const container = document.querySelector("#brandingSettings");
+  if (!container) return;
+  const rows = [
+    ["Main Brand Name", brandConfig.mainBrandName],
+    ["Sidebar Logo", brandConfig.sidebarLogo],
+    ["Light Background Logo", brandConfig.lightBackgroundLogo],
+    ["Luxury Logo", brandConfig.luxuryLogo],
+    ["Regular Listing Logo", brandConfig.regularListingLogo],
+    ["Primary Brand Color", brandConfig.primaryBrandColor],
+    ["Accent Brand Color", brandConfig.accentBrandColor],
+    ["Branding Mode", brandConfig.brandingMode]
+  ];
+  container.innerHTML = rows.map(([label, value]) => `
+    <label class="brand-setting-field">
+      ${escapeHTML(label)}
+      <input value="${escapeHTML(value)}" readonly>
+    </label>
+  `).join("");
+
+  const preview = document.querySelector("#brandingPreview");
+  if (preview) {
+    preview.innerHTML = `
+      <div class="brand-preview-card dark">
+        ${brandImageHTML(brandConfig.sidebarLogo, "Jakobov white logo", "settings-logo", brandConfig.mainBrandName)}
+        <span>Sidebar default</span>
+      </div>
+      <div class="brand-preview-card">
+        ${brandImageHTML(brandConfig.lightBackgroundLogo, "Jakobov dark logo", "settings-logo", brandConfig.mainBrandName)}
+        <span>Light page areas</span>
+      </div>
+      <div class="brand-preview-card">
+        ${brandImageHTML(brandConfig.luxuryLogo, "Luxury listing logo", "settings-logo wide", "Luxury")}
+        <span>Listings $1,000,000+</span>
+      </div>
+      <div class="brand-preview-card">
+        ${brandImageHTML(brandConfig.regularListingLogo, "eXp Realty listing logo", "settings-logo", "eXp Realty")}
+        <span>Listings below $1,000,000</span>
+      </div>
+    `;
+  }
+}
+
 function createAttendanceSession(date = document.querySelector("#attendanceDate")?.value || todayArizonaISO()) {
   const info = getMeetingInfoForArizonaDate(date);
   let session = state.attendanceSessions.find((item) => item.date === date);
@@ -1260,6 +1315,25 @@ function formatPriceLabel(value) {
 
 function getLogoTypeForPrice(value) {
   return parseMoneyValue(value) >= 1000000 ? "Luxury eXp" : "Regular eXp";
+}
+
+function getListingBranding(value) {
+  const isLuxury = parseMoneyValue(value) >= 1000000;
+  return {
+    label: isLuxury ? "Luxury" : "eXp Realty",
+    logoType: isLuxury ? "Luxury eXp" : "Regular eXp",
+    logo: isLuxury ? brandConfig.luxuryLogo : brandConfig.regularListingLogo,
+    className: isLuxury ? "luxury" : "regular"
+  };
+}
+
+function brandImageHTML(src, alt, className = "", fallbackText = "") {
+  return `
+    <span class="brand-logo-wrap ${escapeHTML(className)}">
+      <img src="${escapeHTML(src)}" alt="${escapeHTML(alt)}" loading="lazy" onerror="this.hidden=true; this.nextElementSibling.hidden=false;">
+      <span class="brand-logo-fallback" hidden>${escapeHTML(fallbackText || alt)}</span>
+    </span>
+  `;
 }
 
 function getAgentProfile(agentName) {
@@ -1803,7 +1877,8 @@ function renderPhotoPrepForPost(post) {
 
 function renderSocialPostCard(post) {
   const status = post.statusWorkflow || "New";
-  const logoType = post.logoType || getLogoTypeForPrice(post.price);
+  const listingBranding = getListingBranding(post.price);
+  const logoType = post.logoType || listingBranding.logoType;
   const warnings = getAgentWarnings(post);
   const workflowButtons = socialWorkflowStatuses.map((workflow) => `
     <button class="quiet ${workflow === status ? "active-action" : ""}" data-social-workflow="${escapeHTML(workflow)}" data-id="${escapeHTML(post.id)}" type="button">${escapeHTML(workflow)}</button>
@@ -1817,13 +1892,18 @@ function renderSocialPostCard(post) {
           <h3>${escapeHTML(getSocialPostTitle(post))}</h3>
           ${warnings.length ? `<p class="warning-line">${escapeHTML(warnings.join(". "))}</p>` : ""}
         </div>
-        <span class="status-pill">${escapeHTML(status)}</span>
+        <div class="listing-brand-stack">
+          ${brandImageHTML(listingBranding.logo, `${listingBranding.label} listing logo`, `listing-brand ${listingBranding.className}`, listingBranding.label)}
+          <span class="brand-pill ${escapeHTML(listingBranding.className)}">${escapeHTML(listingBranding.label)}</span>
+          <span class="status-pill">${escapeHTML(status)}</span>
+        </div>
       </div>
 
       <div class="social-field-grid">
         ${socialField("Date Received", post.dateReceived)}
         ${socialField("MLS#", post.mlsNumber)}
         ${socialField("Price", formatPriceLabel(post.price))}
+        ${socialField("Branding Type", listingBranding.label)}
         ${socialField("Logo Type", logoType)}
         ${socialField("Agent Headshot", post.agentHeadshotLink || getHeadshotLinkFromSelection(post.agentHeadshotFile || getSuggestedHeadshot(post).selected), true)}
         ${socialField("Bedrooms", post.bedrooms)}
@@ -2060,6 +2140,7 @@ async function generateCaptionFromBuilder() {
 
 function buildWhatsAppHandoff(post) {
   const photoCount = Object.keys(post.processedPhotos || {}).length;
+  const listingBranding = getListingBranding(post.price);
   const photoChecklist = socialPhotoSlots.map((slot) => {
     const ready = post.processedPhotos?.[slot] ? "READY" : "NEEDS PHOTO";
     return `${slot}: ${ready}`;
@@ -2070,7 +2151,8 @@ Property: ${post.propertyAddress || "Not set"}
 Status: ${post.listingType || "Not set"}
 Agent: ${post.agentName || "Not set"}
 MLS: ${post.mlsNumber || "Not set"}
-Logo: ${post.logoType || getLogoTypeForPrice(post.price)}
+Branding: ${listingBranding.label}
+Logo: ${post.logoType || listingBranding.logoType}
 Agent headshot: ${post.agentHeadshotLink || getHeadshotLinkFromSelection(post.agentHeadshotFile) || "Not selected"}
 Canva video: ${post.canvaVideoLink || post.graphicsLink || "Not added"}
 Processed photos: ${photoCount}/6
@@ -2393,6 +2475,7 @@ function renderAll() {
   renderCompliance();
   renderEndOfDayReport();
   renderSocialPosts();
+  renderBrandingSettings();
   renderTriviaPost();
   renderVideoTasks();
   renderPhotoPrepSlots();

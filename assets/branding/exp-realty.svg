@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 280 112" role="img" aria-labelledby="title desc">
+  <title id="title">eXp Realty logo</title>
+  <desc id="desc">Regular eXp Realty listing brand mark.</desc>
+  <rect width="280" height="112" fill="#0b0b0b"/>
+  <text x="12" y="70" font-family="Arial Black, Arial, Helvetica, sans-serif" font-size="78" fill="#ffffff" letter-spacing="-5">eXp</text>
+  <text x="18" y="100" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="800" fill="#ffffff" letter-spacing="4">REALTY</text>
+  <path d="M100 28l34 0 -17 26z" fill="#c8ad5f"/>
+</svg>

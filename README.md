@@ -1,4 +1,4 @@
-# Ari VA Daily Work Management Dashboard
+# The Jakobov Group VA Command Center
 
 This is a simple local dashboard for daily Virtual Assistant work with Ari and The Jakobov Group.
 
@@ -7,8 +7,27 @@ This is a simple local dashboard for daily Virtual Assistant work with Ari and T
 - `index.html` contains the dashboard layout.
 - `styles.css` controls the clean responsive interface.
 - `app.js` contains the task data model, reminder logic, local storage, templates, caption builder, and checklist behavior.
-- The Google Sync tab contains a snapshot pulled through Codex Gmail, Calendar, and Drive connectors.
+- The Settings tab contains integration helpers, Gmail snapshot items, calendar snapshot items, and branding settings.
 - The app uses a left side navigation menu on desktop with Home, Listings, Trivia, Payments, Tasks, Attendance, Compliance, Reports, Templates, and Settings. On smaller screens, the menu collapses behind a Menu button.
+
+## Branding Assets
+
+The app uses local branding assets so it works on GitHub Pages and locally without external image links.
+
+- Sidebar logo: `assets/branding/jakobov-white.svg`
+- Light background logo: `assets/branding/jakobov-dark.svg`
+- Luxury listing logo: `assets/branding/exp-luxury.svg`
+- Regular listing logo: `assets/branding/exp-realty.svg`
+- Blank fallback asset: `assets/branding/blank.svg`
+
+The sidebar uses the white Jakobov logo on a dark branded background. The Home dashboard uses the dark Jakobov logo on light content areas. The Settings page includes a Branding section that lists the current brand name, logo paths, colors, and branding mode.
+
+Listing branding is automatic:
+
+- Price of `$1,000,000` or more shows Luxury branding and the Luxury logo.
+- Price below `$1,000,000` shows eXp Realty branding and the eXp Realty logo.
+
+To replace the assets later, keep the same filenames in `assets/branding`, or update the `brandConfig` object in `app.js`. If a logo file is missing, the app shows a text fallback instead of breaking the listing card.
 
 ## Recommended Storage
 
@@ -22,11 +41,10 @@ Later upgrade paths:
 
 ## Google Sync Notes
 
-The dashboard now has a Google Sync tab with:
+The Settings tab has a Google sync snapshot with:
 
 - Gmail inbox counts and selected actionable inbox items.
 - Upcoming calendar events.
-- Recent Drive files.
 - Buttons to turn synced Gmail items into dashboard tasks.
 
 This is a snapshot generated through Codex. The local browser app does not continuously connect to Gmail, Calendar, or Drive on its own.

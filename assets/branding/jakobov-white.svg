@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" role="img" aria-labelledby="title desc">
+  <title id="title">The Jakobov Group white logo</title>
+  <desc id="desc">White Jakobov Group wordmark with gold accent lines for dark backgrounds.</desc>
+  <rect width="960" height="520" fill="none"/>
+  <g fill="none" stroke="#c8ad5f" stroke-width="8" stroke-linecap="square">
+    <path d="M112 120h300"/>
+    <path d="M548 120h300"/>
+    <path d="M112 414h130"/>
+    <path d="M718 414h130"/>
+  </g>
+  <text x="480" y="154" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="74" font-weight="700" fill="#ffffff" letter-spacing="4">THE</text>
+  <text x="480" y="320" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="154" fill="#ffffff" letter-spacing="6">JAKOBOV</text>
+  <text x="480" y="468" text-anchor="middle" font-family="Georgia, 'Times New Roman', serif" font-size="138" fill="#ffffff" letter-spacing="8">GROUP</text>
+</svg>
