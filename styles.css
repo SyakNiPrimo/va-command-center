@@ -94,6 +94,20 @@ main {
   margin: 0 auto 36px;
 }
 
+.recurring-grid {
+  display: grid;
+  gap: 10px;
+  margin: 10px 0;
+}
+
+.recurring-card textarea {
+  min-height: 90px;
+}
+
+.payment-form {
+  margin-top: 10px;
+}
+
 .topbar {
   display: flex;
   align-items: center;

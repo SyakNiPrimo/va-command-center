@@ -140,6 +140,54 @@ const agentHeadshotAliases = {
   joseph: ["Joe.jpeg"],
   joe: ["Joe.jpeg"]
 };
+const defaultPaymentSummary = "Work includes administrative support, coordination, updates, listing and social media support, automation/app updates, and other assigned VA tasks throughout the week.";
+const triviaChecklistItems = [
+  "Choose topic",
+  "Review Slide 1",
+  "Review Slide 2",
+  "Choose images",
+  "Create carousel design",
+  "Review caption",
+  "Post",
+  "Mark completed"
+];
+const triviaTopicBank = [
+  {
+    category: "Nature",
+    topic: "Arizona landscape variety",
+    slide1: "DID YOU KNOW?\nArizona is not just desert. It also has mountain towns, pine forests, and snowy winters.",
+    slide2: "WHY PEOPLE LOVE IT\nArizona gives you options. You can enjoy sunny desert living, then escape to cooler mountain weather just a few hours away.",
+    caption: "Arizona living comes with more variety than many people expect.\n\nFrom desert views to pine forests and cooler mountain towns, the state offers different lifestyles within just a few hours of each other. That variety is one reason so many people love calling Arizona home."
+  },
+  {
+    category: "Lifestyle",
+    topic: "Arizona outdoor living",
+    slide1: "DID YOU KNOW?\nArizona has more than 300 sunny days in many parts of the state.",
+    slide2: "WHY PEOPLE LOVE IT\nThat sunshine makes patios, pools, hiking, golf, and outdoor dining part of everyday life for many Arizona residents.",
+    caption: "Arizona makes outdoor living feel easy.\n\nWith so much sunshine throughout the year, residents can enjoy patios, hikes, golf, pool days, and beautiful desert evenings as part of their regular routine."
+  },
+  {
+    category: "Real Estate",
+    topic: "Arizona lifestyle choice",
+    slide1: "DID YOU KNOW?\nArizona offers everything from lock and leave condos to luxury desert estates.",
+    slide2: "WHY PEOPLE LOVE IT\nBuyers can choose a lifestyle that fits them, from low maintenance living to space, views, privacy, and resort style amenities.",
+    caption: "Arizona real estate gives buyers room to choose the lifestyle they want.\n\nFrom easy lock and leave homes to luxury properties with mountain views and outdoor living spaces, there is something here for many different seasons of life."
+  },
+  {
+    category: "Local Fun Facts",
+    topic: "Arizona sunsets",
+    slide1: "DID YOU KNOW?\nArizona sunsets are famous because desert dust and dry air help create vivid colors.",
+    slide2: "WHY PEOPLE LOVE IT\nThose glowing skies turn everyday evenings into something special, especially from homes with mountain or open desert views.",
+    caption: "Arizona sunsets are one of the small daily luxuries of living here.\n\nThe desert sky often brings bold color, soft light, and mountain silhouettes that make evenings feel memorable right from home."
+  },
+  {
+    category: "Seasonal",
+    topic: "Arizona winter lifestyle",
+    slide1: "DID YOU KNOW?\nArizona winters are one of the biggest reasons people relocate or spend part of the year here.",
+    slide2: "WHY PEOPLE LOVE IT\nMild winter weather means more time outside, easier travel around town, and a lifestyle that feels active year round.",
+    caption: "Arizona winters are a major lifestyle draw.\n\nWhile many places slow down in colder months, Arizona offers mild weather, outdoor activities, and a comfortable rhythm that keeps life moving."
+  }
+];
 let activeSocialPostFilter = "All";
 let socialPostSearchTerm = "";
 
@@ -390,6 +438,41 @@ function todayArizonaISO(date = new Date()) {
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
+function addDaysISO(dateString, days) {
+  const date = new Date(`${dateString}T12:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function getArizonaWeekday(date = new Date()) {
+  return getArizonaParts(date).weekday;
+}
+
+function getArizonaWeekStartISO(date = new Date()) {
+  const today = todayArizonaISO(date);
+  const weekdays = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const index = weekdays.indexOf(getArizonaWeekday(date));
+  const mondayOffset = index === 0 ? -6 : 1 - index;
+  return addDaysISO(today, mondayOffset);
+}
+
+function getArizonaWeekKey(date = new Date()) {
+  return getArizonaWeekStartISO(date);
+}
+
+function getCurrentPaymentKey(date = new Date()) {
+  const weekStart = getArizonaWeekStartISO(date);
+  return addDaysISO(weekStart, 4);
+}
+
+function isFridayArizona(date = new Date()) {
+  return getArizonaWeekday(date) === "Friday";
+}
+
+function isWednesdayArizona(date = new Date()) {
+  return getArizonaWeekday(date) === "Wednesday";
+}
+
 function loadState() {
   const saved = localStorage.getItem(storeKey);
   if (saved) return JSON.parse(saved);
@@ -401,7 +484,10 @@ function loadState() {
     attendanceSessions: [],
     socialPosts: [],
     agentProfiles: {},
-    videoTasks: seedVideoTasks
+    videoTasks: seedVideoTasks,
+    paymentRequests: {},
+    weeklyTriviaPosts: {},
+    triviaHistory: []
   };
 }
 
@@ -456,6 +542,9 @@ function showToast(message) {
 function setDailyState() {
   if (!Array.isArray(state.socialPosts)) state.socialPosts = [];
   if (!state.agentProfiles) state.agentProfiles = {};
+  if (!state.paymentRequests) state.paymentRequests = {};
+  if (!state.weeklyTriviaPosts) state.weeklyTriviaPosts = {};
+  if (!Array.isArray(state.triviaHistory)) state.triviaHistory = [];
   state.tasks = state.tasks.filter((task) => task.category !== "Follow Up Boss");
   const readAiTaskExists = state.tasks.some((task) => task.title === "Paste morning Zoom link into Read.ai");
   if (!readAiTaskExists) {
@@ -489,6 +578,8 @@ function setDailyState() {
   });
   if (!Array.isArray(state.attendanceSessions)) state.attendanceSessions = [];
   if (!Array.isArray(state.videoTasks)) state.videoTasks = seedVideoTasks;
+  ensureWeeklyPaymentRequest();
+  ensureWeeklyTriviaPost();
 }
 
 function renderMeeting() {
@@ -544,12 +635,220 @@ function renderWhatsappReminder() {
   text.textContent = `At ${info.reminderTime}, copy and send the ${info.type} reminder in WhatsApp.`;
 }
 
+function getCurrentPaymentRequest() {
+  const key = getCurrentPaymentKey();
+  if (!state.paymentRequests[key]) {
+    const weekStart = getArizonaWeekStartISO();
+    state.paymentRequests[key] = {
+      key,
+      startDate: weekStart,
+      endDate: key,
+      totalHours: 40,
+      ratePerHour: 5,
+      totalAmount: 200,
+      workSummary: defaultPaymentSummary,
+      message: "",
+      sent: false
+    };
+  }
+  return state.paymentRequests[key];
+}
+
+function calculatePaymentTotal(hours, rate) {
+  const total = Number(hours || 0) * Number(rate || 0);
+  return Number.isFinite(total) ? total : 0;
+}
+
+function buildPaymentRequestMessage(payment) {
+  const total = calculatePaymentTotal(payment.totalHours, payment.ratePerHour);
+  const summary = payment.workSummary || defaultPaymentSummary;
+  return `Hi Ari,
+
+This payment request covers work completed from ${payment.startDate} to ${payment.endDate} for general VA support tasks.
+
+Total hours: ${payment.totalHours} hours
+Rate: $${payment.ratePerHour}/hour
+Total amount due: $${total}
+
+${summary}
+
+Thank you!
+Ben`;
+}
+
+function collectPaymentRequestFromForm() {
+  const payment = getCurrentPaymentRequest();
+  payment.startDate = document.querySelector("#paymentStartDate")?.value || payment.startDate;
+  payment.endDate = document.querySelector("#paymentEndDate")?.value || payment.endDate;
+  payment.totalHours = Number(document.querySelector("#paymentHours")?.value || 0);
+  payment.ratePerHour = Number(document.querySelector("#paymentRate")?.value || 0);
+  payment.totalAmount = calculatePaymentTotal(payment.totalHours, payment.ratePerHour);
+  payment.workSummary = document.querySelector("#paymentSummary")?.value.trim() || defaultPaymentSummary;
+  payment.message = buildPaymentRequestMessage(payment);
+  return payment;
+}
+
+function renderPaymentRequest() {
+  const payment = getCurrentPaymentRequest();
+  const dueToday = isFridayArizona();
+  const card = document.querySelector("#paymentRequestCard");
+  if (!card) return;
+  card.classList.toggle("ready", dueToday && !payment.sent);
+  document.querySelector("#paymentRequestStatus").textContent = payment.sent ? "Sent This Friday" : dueToday ? "Due Today" : "Due Friday";
+  document.querySelector("#paymentReminderText").textContent = dueToday
+    ? "Payment request is due today. Review hours, copy message, then send to Ari."
+    : "Payment request appears every Friday morning Arizona time.";
+  document.querySelector("#paymentStartDate").value = payment.startDate;
+  document.querySelector("#paymentEndDate").value = payment.endDate;
+  document.querySelector("#paymentHours").value = payment.totalHours;
+  document.querySelector("#paymentRate").value = payment.ratePerHour;
+  document.querySelector("#paymentTotal").value = `$${calculatePaymentTotal(payment.totalHours, payment.ratePerHour)}`;
+  document.querySelector("#paymentSummary").value = payment.workSummary || defaultPaymentSummary;
+  document.querySelector("#paymentMessageOutput").value = payment.message || buildPaymentRequestMessage(payment);
+  document.querySelector("#markPaymentSentBtn").classList.toggle("done", payment.sent);
+  document.querySelector("#markPaymentSentBtn").textContent = payment.sent ? "Sent" : "Mark Sent";
+}
+
+function updatePaymentTotalPreview() {
+  const total = calculatePaymentTotal(document.querySelector("#paymentHours")?.value, document.querySelector("#paymentRate")?.value);
+  const field = document.querySelector("#paymentTotal");
+  if (field) field.value = `$${total}`;
+}
+
+function pickTriviaTopic() {
+  const lastTopic = state.triviaHistory?.[0];
+  return triviaTopicBank.find((item) => item.topic !== lastTopic) || triviaTopicBank[0];
+}
+
+function buildTriviaFromTopic(topicItem = pickTriviaTopic()) {
+  const hashtags = "#arizona #RealEstate #TheJakobovGroup";
+  return {
+    weekKey: getArizonaWeekKey(),
+    topic: `${topicItem.category}: ${topicItem.topic}`,
+    slide1Text: topicItem.slide1,
+    slide2Text: topicItem.slide2,
+    caption: `${topicItem.caption}\n\n${hashtags}`,
+    hashtags,
+    backgroundImage1: "",
+    backgroundImage2: "",
+    status: "Drafting",
+    dateCreated: todayArizonaISO(),
+    datePosted: "",
+    checklist: Object.fromEntries(triviaChecklistItems.map((item) => [item, false]))
+  };
+}
+
+function ensureWeeklyPaymentRequest() {
+  getCurrentPaymentRequest();
+}
+
+function ensureWeeklyTriviaPost() {
+  const key = getArizonaWeekKey();
+  if (!state.weeklyTriviaPosts[key] && isWednesdayArizona()) {
+    const post = buildTriviaFromTopic();
+    state.weeklyTriviaPosts[key] = post;
+    state.triviaHistory = [post.topic, ...(state.triviaHistory || []).filter((topic) => topic !== post.topic)].slice(0, 8);
+  }
+}
+
+function getCurrentTriviaPost() {
+  const key = getArizonaWeekKey();
+  if (!state.weeklyTriviaPosts[key]) state.weeklyTriviaPosts[key] = buildTriviaFromTopic();
+  return state.weeklyTriviaPosts[key];
+}
+
+function collectTriviaPostFromForm() {
+  const post = getCurrentTriviaPost();
+  post.topic = document.querySelector("#triviaTopic")?.value.trim() || post.topic;
+  post.slide1Text = document.querySelector("#triviaSlide1")?.value.trim() || "";
+  post.slide2Text = document.querySelector("#triviaSlide2")?.value.trim() || "";
+  post.caption = document.querySelector("#triviaCaption")?.value.trim() || "";
+  post.hashtags = document.querySelector("#triviaHashtags")?.value.trim() || "#arizona #RealEstate #TheJakobovGroup";
+  post.backgroundImage1 = document.querySelector("#triviaBackground1")?.value.trim() || "";
+  post.backgroundImage2 = document.querySelector("#triviaBackground2")?.value.trim() || "";
+  post.status = document.querySelector("#triviaStatus")?.value || post.status;
+  post.dateCreated = document.querySelector("#triviaDateCreated")?.value || post.dateCreated || todayArizonaISO();
+  post.datePosted = document.querySelector("#triviaDatePosted")?.value || post.datePosted || "";
+  return post;
+}
+
+function cleanTriviaCopy(text) {
+  return String(text || "").replace(/[\u2014\u2013-]/g, ",").trim();
+}
+
+async function improveTriviaWithServer(post) {
+  const response = await fetch("http://127.0.0.1:8791/generate-trivia", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(post)
+  });
+  const result = await response.json();
+  if (!response.ok || !result.ok) throw new Error(result.error || "Trivia generation failed.");
+  return result.post;
+}
+
+async function generateWeeklyTriviaPost() {
+  const localPost = buildTriviaFromTopic();
+  let finalPost = localPost;
+  const status = document.querySelector("#triviaGeneratorStatus");
+  try {
+    finalPost = await improveTriviaWithServer(localPost);
+    if (status) status.textContent = "Generated with caption server.";
+  } catch (error) {
+    if (status) status.textContent = "Using local trivia generator. Start caption server for stronger copy.";
+  }
+  finalPost.caption = cleanTriviaCopy(finalPost.caption || localPost.caption);
+  finalPost.slide1Text = cleanTriviaCopy(finalPost.slide1Text || localPost.slide1Text);
+  finalPost.slide2Text = cleanTriviaCopy(finalPost.slide2Text || localPost.slide2Text);
+  finalPost.hashtags = finalPost.hashtags || "#arizona #RealEstate #TheJakobovGroup";
+  finalPost.status = "Drafting";
+  finalPost.weekKey = getArizonaWeekKey();
+  finalPost.dateCreated = todayArizonaISO();
+  finalPost.checklist = finalPost.checklist || Object.fromEntries(triviaChecklistItems.map((item) => [item, false]));
+  state.weeklyTriviaPosts[finalPost.weekKey] = finalPost;
+  state.triviaHistory = [finalPost.topic, ...(state.triviaHistory || []).filter((topic) => topic !== finalPost.topic)].slice(0, 8);
+  saveState();
+  renderTriviaPost();
+  renderFocus();
+  showToast("Weekly Arizona trivia post generated.");
+}
+
+function renderTriviaPost() {
+  const post = getCurrentTriviaPost();
+  const dueToday = isWednesdayArizona();
+  const card = document.querySelector("#weeklyTriviaCard");
+  if (!card) return;
+  card.classList.toggle("ready", dueToday && !["Posted", "Completed"].includes(post.status));
+  document.querySelector("#triviaStatusPill").textContent = dueToday ? "Due Today" : "Due Wednesday";
+  document.querySelector("#triviaReminderText").textContent = dueToday
+    ? "Weekly Arizona trivia post is due today. Review the copy, design the carousel, then post manually."
+    : "Weekly Arizona trivia post appears every Wednesday morning Arizona time.";
+  document.querySelector("#triviaTopic").value = post.topic || "";
+  document.querySelector("#triviaSlide1").value = post.slide1Text || "";
+  document.querySelector("#triviaSlide2").value = post.slide2Text || "";
+  document.querySelector("#triviaCaption").value = post.caption || "";
+  document.querySelector("#triviaHashtags").value = post.hashtags || "#arizona #RealEstate #TheJakobovGroup";
+  document.querySelector("#triviaBackground1").value = post.backgroundImage1 || "";
+  document.querySelector("#triviaBackground2").value = post.backgroundImage2 || "";
+  document.querySelector("#triviaStatus").value = post.status || "Idea";
+  document.querySelector("#triviaDateCreated").value = post.dateCreated || todayArizonaISO();
+  document.querySelector("#triviaDatePosted").value = post.datePosted || "";
+  const checklist = document.querySelector("#triviaChecklist");
+  checklist.innerHTML = triviaChecklistItems.map((item) => `
+    <label class="mini-check">
+      <input type="checkbox" data-trivia-check="${escapeHTML(item)}" ${post.checklist?.[item] ? "checked" : ""}>
+      <span>${escapeHTML(item)}</span>
+    </label>
+  `).join("");
+}
+
 function priorityRank(priority) {
   return priorities.indexOf(priority);
 }
 
 function renderFocus() {
   const today = todayISO();
+  const arizonaToday = todayArizonaISO();
   const active = state.tasks
     .filter((task) => task.status !== "Completed")
     .sort((a, b) => priorityRank(a.priority) - priorityRank(b.priority));
@@ -557,11 +856,31 @@ function renderFocus() {
   const top = active.filter((task) => task.due === today || task.priority === "Urgent" || task.priority === "High").slice(0, 3);
   const topTasks = document.querySelector("#topTasks");
   topTasks.innerHTML = "";
+  const recurringFocus = [];
+  if (isFridayArizona()) {
+    const payment = getCurrentPaymentRequest();
+    if (!payment.sent) recurringFocus.push("Weekly Payment Request: review hours, copy message, then send to Ari");
+  }
+  if (isWednesdayArizona()) {
+    const trivia = getCurrentTriviaPost();
+    if (trivia && !["Posted", "Completed"].includes(trivia.status)) recurringFocus.push("Weekly Arizona Trivia Post: review carousel copy and prepare design");
+  }
+  recurringFocus.forEach((text) => {
+    const item = document.createElement("li");
+    item.textContent = text;
+    topTasks.appendChild(item);
+  });
   (top.length ? top : active.slice(0, 3)).forEach((task) => {
+    if (topTasks.children.length >= 3) return;
     const item = document.createElement("li");
     item.textContent = `${task.title} (${task.category})`;
     topTasks.appendChild(item);
   });
+  if (!topTasks.children.length) {
+    const item = document.createElement("li");
+    item.textContent = `No urgent tasks for ${arizonaToday}.`;
+    topTasks.appendChild(item);
+  }
 
   const waitingList = document.querySelector("#waitingList");
   waitingList.innerHTML = "";
@@ -2099,12 +2418,14 @@ function renderAll() {
   setDailyState();
   renderMeeting();
   renderFocus();
+  renderPaymentRequest();
   renderTasks();
   renderSync();
   renderAttendance();
   renderCompliance();
   renderEndOfDayReport();
   renderSocialPosts();
+  renderTriviaPost();
   renderVideoTasks();
   renderPhotoPrepSlots();
   renderTemplates();
@@ -2427,6 +2748,39 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.setInterval(renderWhatsappReminder, 30000);
 
+  ["#paymentHours", "#paymentRate"].forEach((selector) => {
+    document.querySelector(selector)?.addEventListener("input", updatePaymentTotalPreview);
+  });
+  ["#paymentStartDate", "#paymentEndDate", "#paymentHours", "#paymentRate", "#paymentSummary"].forEach((selector) => {
+    document.querySelector(selector)?.addEventListener("change", () => {
+      collectPaymentRequestFromForm();
+      saveState();
+      renderPaymentRequest();
+    });
+  });
+  document.querySelector("#generatePaymentRequestBtn")?.addEventListener("click", () => {
+    const payment = collectPaymentRequestFromForm();
+    saveState();
+    renderPaymentRequest();
+    document.querySelector("#paymentMessageOutput").value = payment.message;
+    showToast("Payment request generated.");
+  });
+  document.querySelector("#copyPaymentRequestBtn")?.addEventListener("click", () => {
+    const payment = collectPaymentRequestFromForm();
+    saveState();
+    renderPaymentRequest();
+    copyText(payment.message);
+  });
+  document.querySelector("#markPaymentSentBtn")?.addEventListener("click", () => {
+    const payment = collectPaymentRequestFromForm();
+    payment.sent = true;
+    payment.sentDate = todayArizonaISO();
+    saveState();
+    renderPaymentRequest();
+    renderFocus();
+    showToast("Payment request marked sent for this Friday.");
+  });
+
   document.querySelector("#taskForm").addEventListener("submit", (event) => {
     event.preventDefault();
     state.tasks.unshift({
@@ -2695,6 +3049,66 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   document.querySelector("#loadSampleSocialPostsBtn")?.addEventListener("click", loadSampleSocialPosts);
   document.querySelector("#clearSampleSocialPostsBtn")?.addEventListener("click", clearSampleSocialPosts);
+
+  document.querySelector("#generateTriviaPostBtn")?.addEventListener("click", () => {
+    generateWeeklyTriviaPost().catch((error) => {
+      document.querySelector("#triviaGeneratorStatus").textContent = `Trivia generation failed: ${error.message}`;
+      showToast("Trivia generation failed.");
+    });
+  });
+  ["#triviaTopic", "#triviaSlide1", "#triviaSlide2", "#triviaCaption", "#triviaHashtags", "#triviaBackground1", "#triviaBackground2", "#triviaStatus", "#triviaDateCreated", "#triviaDatePosted"].forEach((selector) => {
+    document.querySelector(selector)?.addEventListener("change", () => {
+      collectTriviaPostFromForm();
+      saveState();
+      renderTriviaPost();
+      renderFocus();
+    });
+  });
+  document.querySelector("#triviaChecklist")?.addEventListener("change", (event) => {
+    const check = event.target.closest("input[data-trivia-check]");
+    if (!check) return;
+    const post = getCurrentTriviaPost();
+    post.checklist = post.checklist || {};
+    post.checklist[check.dataset.triviaCheck] = check.checked;
+    if (check.dataset.triviaCheck === "Mark completed" && check.checked) post.status = "Completed";
+    saveState();
+    renderTriviaPost();
+    renderFocus();
+  });
+  document.querySelector("#copyTriviaSlide1Btn")?.addEventListener("click", () => {
+    const post = collectTriviaPostFromForm();
+    saveState();
+    copyText(post.slide1Text);
+  });
+  document.querySelector("#copyTriviaSlide2Btn")?.addEventListener("click", () => {
+    const post = collectTriviaPostFromForm();
+    saveState();
+    copyText(post.slide2Text);
+  });
+  document.querySelector("#copyTriviaCaptionBtn")?.addEventListener("click", () => {
+    const post = collectTriviaPostFromForm();
+    saveState();
+    copyText(post.caption);
+  });
+  document.querySelector("#markTriviaReadyBtn")?.addEventListener("click", () => {
+    const post = collectTriviaPostFromForm();
+    post.status = "Ready To Post";
+    post.checklist = { ...(post.checklist || {}), "Review caption": true, "Create carousel design": true };
+    saveState();
+    renderTriviaPost();
+    renderFocus();
+    showToast("Trivia post marked ready to post.");
+  });
+  document.querySelector("#markTriviaPostedBtn")?.addEventListener("click", () => {
+    const post = collectTriviaPostFromForm();
+    post.status = "Posted";
+    post.datePosted = todayArizonaISO();
+    post.checklist = { ...(post.checklist || {}), Post: true };
+    saveState();
+    renderTriviaPost();
+    renderFocus();
+    showToast("Trivia post marked posted.");
+  });
 
   document.querySelector("#addLocalSocialPostBtn")?.addEventListener("click", openLocalSocialPostModal);
 

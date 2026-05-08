@@ -68,6 +68,68 @@ async function generateCaption(body) {
   return { caption: cleanCaption(text), fallback: false };
 }
 
+function parseTriviaOutput(text, fallback) {
+  const cleaned = cleanCaption(text);
+  const slide1 = cleaned.match(/Slide 1:\s*([\s\S]*?)(?:Slide 2:|Caption:|$)/i)?.[1]?.trim();
+  const slide2 = cleaned.match(/Slide 2:\s*([\s\S]*?)(?:Caption:|$)/i)?.[1]?.trim();
+  const caption = cleaned.match(/Caption:\s*([\s\S]*)/i)?.[1]?.trim();
+  return {
+    ...fallback,
+    slide1Text: slide1 || fallback.slide1Text,
+    slide2Text: slide2 || fallback.slide2Text,
+    caption: caption || fallback.caption,
+    hashtags: "#arizona #RealEstate #TheJakobovGroup",
+    status: "Drafting"
+  };
+}
+
+async function generateTrivia(body) {
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY is missing. The app can still use the local trivia generator.");
+  }
+  const prompt = `Create a weekly Arizona trivia social media carousel package for The Jakobov Group.
+
+Rules:
+- 2 slide carousel
+- Slide 1 is a DID YOU KNOW style hook
+- Slide 2 explains why this makes Arizona attractive to live in or move to
+- Caption is polished, approachable, Arizona real estate friendly
+- No hyphens or em dashes
+- Max 5 hashtags
+- Always include #arizona #RealEstate #TheJakobovGroup
+- Do not mention automated tools
+
+Return exactly:
+Slide 1:
+...
+
+Slide 2:
+...
+
+Caption:
+...
+
+Current draft:
+${JSON.stringify(body, null, 2)}`;
+
+  const response = await fetch("https://api.openai.com/v1/responses", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model,
+      input: prompt,
+      temperature: 0.7
+    })
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error?.message || "OpenAI API error");
+  const text = data.output_text || data.output?.flatMap((item) => item.content || []).map((item) => item.text || "").join("\n") || "";
+  return parseTriviaOutput(text, body);
+}
+
 const server = http.createServer(async (req, res) => {
   try {
     if (req.method === "OPTIONS") return json(res, 200, { ok: true });
@@ -84,6 +146,11 @@ const server = http.createServer(async (req, res) => {
       const body = await readBody(req);
       const result = await generateCaption(body);
       return json(res, 200, { ok: true, ...result });
+    }
+    if (url.pathname === "/generate-trivia" && req.method === "POST") {
+      const body = await readBody(req);
+      const post = await generateTrivia(body);
+      return json(res, 200, { ok: true, post });
     }
     json(res, 404, { ok: false, error: "Not found" });
   } catch (error) {

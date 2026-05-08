@@ -69,6 +69,52 @@
       </div>
       <button id="openBrochureModalBtn" type="button">Luxury Brochure Request</button>
     </section>
+
+    <section class="recurring-grid" aria-label="Recurring Ari workflows">
+      <article class="panel recurring-card" id="paymentRequestCard">
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">Weekly Payment Request</p>
+            <h2>Payment Request Creator</h2>
+            <p class="section-note" id="paymentReminderText">Payment request is due every Friday Arizona time.</p>
+          </div>
+          <span class="status-pill" id="paymentRequestStatus">Scheduled</span>
+        </div>
+        <form class="task-form compact-form payment-form">
+          <label>
+            Start Date
+            <input id="paymentStartDate" type="date">
+          </label>
+          <label>
+            End Date
+            <input id="paymentEndDate" type="date">
+          </label>
+          <label>
+            Total Hours
+            <input id="paymentHours" type="number" min="0" step="0.25" value="40">
+          </label>
+          <label>
+            Rate Per Hour
+            <input id="paymentRate" type="number" min="0" step="0.25" value="5">
+          </label>
+          <label>
+            Total Amount
+            <input id="paymentTotal" readonly>
+          </label>
+          <label class="wide">
+            Work Summary
+            <textarea id="paymentSummary"></textarea>
+          </label>
+        </form>
+        <textarea id="paymentMessageOutput" readonly placeholder="Generate the payment request message"></textarea>
+        <div class="button-row">
+          <button id="generatePaymentRequestBtn" type="button">Generate Payment Request</button>
+          <button id="copyPaymentRequestBtn" type="button" class="quiet">Copy Payment Request</button>
+          <button id="markPaymentSentBtn" type="button" class="quiet">Mark Sent</button>
+        </div>
+      </article>
+    </section>
+
     <details class="panel add-panel capture-panel" aria-label="Add work item">
       <summary>
         <span>
@@ -198,6 +244,75 @@
           <p class="section-note">Listing post tasks, captions, photo prep, Canva videos, and compliance rules in one workflow.</p>
         </div>
       </div>
+
+      <article class="panel flat trivia-panel" id="weeklyTriviaCard">
+        <div class="section-head">
+          <div>
+            <h3>Weekly Arizona Trivia Post</h3>
+            <p class="section-note" id="triviaReminderText">Create a 2 slide Arizona trivia carousel every Wednesday Arizona time.</p>
+          </div>
+          <span class="status-pill" id="triviaStatusPill">Scheduled</span>
+        </div>
+        <div class="social-edit-grid">
+          <label class="social-edit-field">
+            Trivia Topic
+            <input id="triviaTopic" placeholder="Example: Arizona mountain towns">
+          </label>
+          <label class="social-edit-field">
+            Status
+            <select id="triviaStatus">
+              <option>Idea</option>
+              <option>Drafting</option>
+              <option>Designing</option>
+              <option>Ready To Post</option>
+              <option>Posted</option>
+              <option>Completed</option>
+            </select>
+          </label>
+          <label class="social-edit-field">
+            Date Created
+            <input id="triviaDateCreated" type="date">
+          </label>
+          <label class="social-edit-field">
+            Date Posted
+            <input id="triviaDatePosted" type="date">
+          </label>
+          <label class="social-edit-field wide">
+            Slide 1 Text
+            <textarea id="triviaSlide1"></textarea>
+          </label>
+          <label class="social-edit-field wide">
+            Slide 2 Text
+            <textarea id="triviaSlide2"></textarea>
+          </label>
+          <label class="social-edit-field wide">
+            Caption
+            <textarea id="triviaCaption"></textarea>
+          </label>
+          <label class="social-edit-field">
+            Hashtags
+            <input id="triviaHashtags" value="#arizona #RealEstate #TheJakobovGroup">
+          </label>
+          <label class="social-edit-field">
+            Background Image 1
+            <input id="triviaBackground1" placeholder="Paste image note or link">
+          </label>
+          <label class="social-edit-field">
+            Background Image 2
+            <input id="triviaBackground2" placeholder="Paste image note or link">
+          </label>
+        </div>
+        <div class="mini-check-grid" id="triviaChecklist"></div>
+        <p class="sync-inline-status" id="triviaGeneratorStatus"></p>
+        <div class="button-row">
+          <button id="generateTriviaPostBtn" type="button">Generate Trivia Post</button>
+          <button id="copyTriviaSlide1Btn" type="button" class="quiet">Copy Slide 1 Text</button>
+          <button id="copyTriviaSlide2Btn" type="button" class="quiet">Copy Slide 2 Text</button>
+          <button id="copyTriviaCaptionBtn" type="button" class="quiet">Copy Caption</button>
+          <button id="markTriviaReadyBtn" type="button" class="quiet">Mark Ready To Post</button>
+          <button id="markTriviaPostedBtn" type="button">Mark Posted</button>
+        </div>
+      </article>
 
       <article class="panel flat social-tracker-panel">
         <div class="section-head">

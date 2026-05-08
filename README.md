@@ -188,22 +188,27 @@ Until the URL is added, the sync button copies the attendance payload so nothing
 - The dashboard checks the day and reminder time using Arizona time, even if the computer is in another timezone.
 - The WhatsApp reminder uses the same Tuesday versus non Tuesday message logic.
 - The WhatsApp message can be copied manually and marked sent.
+- Weekly Ari workflows use Arizona time through the same `America/Phoenix` date logic.
+- Friday Arizona time shows the Weekly Payment Request in Daily Focus.
+- Wednesday Arizona time shows the Weekly Arizona Trivia Post in Daily Focus and the Social tab.
 
 ## Daily Workflow
 
 1. Open the dashboard.
 2. Copy and send the meeting reminder.
 3. Paste the morning Zoom link into Read.ai: `https://us06web.zoom.us/j/7251527919`.
-4. Click **Sync Listing Emails** in the Social tab.
-5. Click **Sync Social Posts**.
-6. Verify each listing agent, headshot, logo type, phone, email, and Instagram handle.
-7. Create the Canva design and paste the Canva video or graphics link.
-8. Upload or select the six MLS photos and generate photo prep.
-9. Generate the caption.
-10. Prepare the WhatsApp handoff package.
-11. Post manually from the phone and add music.
-12. Paste the IG post link and click **Mark Posted**.
-13. Open the EOD Report tab, regenerate the report, and copy it for Ari.
+4. If it is Friday Arizona time, generate/copy the Weekly Payment Request and send it to Ari.
+5. If it is Wednesday Arizona time, review the Weekly Arizona Trivia Post and prepare the carousel.
+6. Click **Sync Listing Emails** in the Social tab.
+7. Click **Sync Social Posts**.
+8. Verify each listing agent, headshot, logo type, phone, email, and Instagram handle.
+9. Create the Canva design and paste the Canva video or graphics link.
+10. Upload or select the six MLS photos and generate photo prep.
+11. Generate the caption.
+12. Prepare the WhatsApp handoff package.
+13. Post manually from the phone and add music.
+14. Paste the IG post link and click **Mark Posted**.
+15. Open the EOD Report tab, regenerate the report, and copy it for Ari.
 
 ## Build Instructions
 
@@ -319,6 +324,76 @@ Use the Social tab buttons:
 - **Clear Samples** removes only sample rows and keeps real or synced rows.
 
 Sample data is local only. It does not overwrite Google Sheets data unless you manually copy and use an update payload.
+
+## Weekly Payment Request Workflow
+
+The dashboard includes a **Weekly Payment Request** card for Ari.
+
+- Schedule: every Friday morning Arizona time.
+- Daily Focus: appears on Fridays if the current Friday request has not been marked sent.
+- Storage: localStorage, keyed by the Friday Arizona date, so it resets the next Friday.
+- Defaults:
+  - Total Hours: `40`
+  - Rate Per Hour: `$5`
+  - Total Amount: auto calculated as hours times rate.
+
+Use it:
+
+1. Review Start Date and End Date.
+2. Confirm Total Hours and Rate Per Hour.
+3. Click **Generate Payment Request**.
+4. Click **Copy Payment Request**.
+5. Send the message to Ari.
+6. Click **Mark Sent**.
+
+To test before Friday, temporarily change your computer date to a Friday, open the dashboard, then change it back after confirming the card says `Due Today`.
+
+## Weekly Arizona Trivia Post Workflow
+
+The Social tab includes **Weekly Arizona Trivia Post** for The Jakobov Group.
+
+- Schedule: every Wednesday morning Arizona time.
+- Daily Focus: appears on Wednesdays if the weekly post is not Posted or Completed.
+- Format: 2 slide carousel.
+- Storage: localStorage, keyed by Arizona week, so refreshing does not create duplicates.
+- Local generator: always works even if the caption server is off.
+- OpenAI caption server: if running, the dashboard asks it to improve the trivia copy and caption.
+
+Fields:
+
+- Trivia Topic
+- Slide 1 Text
+- Slide 2 Text
+- Caption
+- Hashtags
+- Background Image 1
+- Background Image 2
+- Status
+- Date Created
+- Date Posted
+
+Status options:
+
+- Idea
+- Drafting
+- Designing
+- Ready To Post
+- Posted
+- Completed
+
+Use it:
+
+1. Click **Generate Trivia Post**.
+2. Review Slide 1 and Slide 2.
+3. Choose images.
+4. Create the carousel design.
+5. Copy the caption.
+6. Post manually.
+7. Click **Mark Posted**.
+
+If the caption server is not running, the Social tab shows: `Using local trivia generator. Start caption server for stronger copy.`
+
+To test before Wednesday, temporarily change your computer date to a Wednesday, open the dashboard, and confirm Daily Focus shows the weekly trivia reminder. You can also click **Generate Trivia Post** any day to test the local generator.
 ## Agent Headshots Source
 
 Official Google Drive folder:
