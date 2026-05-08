@@ -270,6 +270,17 @@ main,
   object-fit: contain;
 }
 
+.home-brand-mark {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, transparent 0 34%, var(--brand-gold) 35% 66%, transparent 67%),
+    #171717;
+  box-shadow: inset 0 0 0 1px rgba(200, 173, 95, 0.28), 0 12px 26px rgba(17, 17, 17, 0.14);
+  flex: 0 0 auto;
+}
+
 .brand-title-fallback {
   color: var(--brand-black);
   font-family: Georgia, "Times New Roman", serif;
@@ -1675,14 +1686,14 @@ label {
 }
 
 .topbar {
-  padding-block: 18px;
+  padding-block: 12px;
   background: rgba(255, 255, 255, 0.86);
   backdrop-filter: blur(14px);
   border-bottom-color: rgba(200, 173, 95, 0.25);
 }
 
 .topbar h1 {
-  font-size: clamp(1.4rem, 2vw, 2rem);
+  font-size: clamp(1.2rem, 1.6vw, 1.55rem);
 }
 
 .topbar-subtitle,
@@ -1695,6 +1706,7 @@ label {
   border-radius: 12px;
   background: #ffffff;
   box-shadow: 0 14px 32px rgba(17, 17, 17, 0.06);
+  padding: 0.56rem 0.64rem;
 }
 
 .sidebar-nav {
@@ -1783,18 +1795,18 @@ label {
 }
 
 .home-brand-panel {
-  min-height: 152px;
+  min-height: 104px;
   border-color: rgba(200, 173, 95, 0.35);
   border-radius: 18px;
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(250, 246, 232, 0.9)),
     radial-gradient(circle at top right, rgba(200, 173, 95, 0.2), transparent 260px);
   box-shadow: 0 24px 70px rgba(17, 17, 17, 0.08);
-  padding: 22px;
+  padding: 16px 18px;
 }
 
 .home-brand-panel img {
-  width: min(250px, 30vw);
+  width: min(120px, 18vw);
 }
 
 .dashboard-kpis {
