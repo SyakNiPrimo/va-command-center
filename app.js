@@ -22,6 +22,7 @@ const statuses = [
 const priorities = ["Urgent", "High", "Medium", "Low"];
 const attendanceSyncUrl = "https://script.google.com/macros/s/AKfycbzr2BcF1hd9dEx6_dzuw1SZgMF6qppY67Pf4Fh1xJTpwX_DA473GaB5uLkh_u6wl6mPew/exec";
 const socialPostsSyncUrl = "";
+const gmailListingSyncUrl = "";
 const brochureEmailSendUrl = "https://script.google.com/macros/s/AKfycbzQvm4KYNm9qkTeXXUzTYbuQlL-6aU5FdIGO172ovZZ-HVZfqxALkoY_vhDiguV4qHdAQ/exec";
 const brochureEmailCc = "ralph@jakobovgroup.com";
 const brochureEmailSignature = "Best,\nBen Tiaga";
@@ -44,6 +45,7 @@ const socialPostFilters = [
   "All",
   "Coming Soon",
   "New Listing",
+  "Active",
   "Pending",
   "Under Contract",
   "Closed",
@@ -57,6 +59,8 @@ const socialPostFilters = [
   "Caption Ready",
   "Ready To Send To WhatsApp",
   "Posted",
+  "Completed",
+  "Canceled",
   "Duplicate"
 ];
 const socialWorkflowStatuses = [
@@ -901,6 +905,18 @@ function setSocialPostSyncStatus(message) {
   if (status) status.textContent = message;
 }
 
+function setSocialPostPayloadPreview(payload) {
+  const preview = document.querySelector("#socialPostPayloadPreview");
+  if (!preview) return;
+  if (!payload) {
+    preview.hidden = true;
+    preview.textContent = "";
+    return;
+  }
+  preview.hidden = false;
+  preview.textContent = typeof payload === "string" ? payload : JSON.stringify(payload, null, 2);
+}
+
 function getDriveFolderFileUrl(fileName) {
   return fileName ? `${agentHeadshotsFolderUrl}#${encodeURIComponent(fileName)}` : "";
 }
@@ -1047,17 +1063,19 @@ async function syncSocialPostUpdate(id, patch) {
   if (!Object.keys(updates).length) return;
   const payload = { id, updates };
 
-  if (socialPostsSyncUrl && String(id || "").startsWith("LOCAL-")) {
+  if (socialPostsSyncUrl && /^(LOCAL|SAMPLE)-/.test(String(id || ""))) {
     setSocialPostSyncStatus("Local task saved in this browser. Google Sheets updates need a sheet row ID.");
     return;
   }
 
   if (!socialPostsSyncUrl) {
+    setSocialPostPayloadPreview(payload);
     await copyText(JSON.stringify(payload, null, 2));
-    setSocialPostSyncStatus("Social posts sync URL missing. Update saved locally and payload copied.");
+    setSocialPostSyncStatus("Social posts sync URL missing. Update saved locally. Payload is shown below and copied for manual use.");
     return;
   }
 
+  setSocialPostPayloadPreview(null);
   setSocialPostSyncStatus(`Updating ${id} in Social Post Tasks...`);
   const response = await fetch(socialPostsSyncUrl, {
     method: "POST",
@@ -1071,6 +1089,7 @@ async function syncSocialPostUpdate(id, patch) {
 
 async function syncSocialPostsFromSheet() {
   if (!socialPostsSyncUrl) {
+    setSocialPostPayloadPreview(null);
     setSocialPostSyncStatus("Google Sheets sync URL missing. Add the Social Post Tasks Apps Script URL to app.js.");
     showToast("Social posts sync URL is not set yet.");
     return;
@@ -1082,6 +1101,7 @@ async function syncSocialPostsFromSheet() {
   if (!response.ok || !result.ok) throw new Error(result.error || "Social post sync failed.");
 
   const sheetPosts = (result.rows || []).map(mapSocialSheetRow);
+  setSocialPostPayloadPreview(null);
   const localOnlyPosts = state.socialPosts.filter((post) => String(post.id || "").startsWith("LOCAL-"));
   state.socialPosts = [...sheetPosts, ...localOnlyPosts];
   saveState();
@@ -1090,13 +1110,227 @@ async function syncSocialPostsFromSheet() {
   showToast(`Loaded ${sheetPosts.length} social post tasks.`);
 }
 
+function summarizeListingEmailSync(result, dryRun = false) {
+  return `${dryRun ? "Test complete" : "Email sync complete"}: processed ${result.processedCount || 0}, created ${result.createdCount || 0}, duplicates ${result.duplicateCount || 0}, needs review ${result.needsReviewCount || 0}, skipped ${result.skippedCount || 0}.`;
+}
+
+async function syncListingEmails(options = {}) {
+  const dryRun = Boolean(options.dryRun);
+  if (!gmailListingSyncUrl) {
+    setSocialPostSyncStatus("Gmail listing sync URL missing. Add the Gmail Listing Sync Apps Script URL to app.js.");
+    showToast("Gmail listing sync URL is not set yet.");
+    return;
+  }
+
+  const url = `${gmailListingSyncUrl}${gmailListingSyncUrl.includes("?") ? "&" : "?"}dryRun=${dryRun ? "true" : "false"}`;
+  setSocialPostSyncStatus(dryRun ? "Testing Gmail listing sync without changing Gmail or Sheets..." : "Syncing Listing Updates emails...");
+  const response = await fetch(url);
+  const result = await response.json();
+  if (!response.ok || !result.ok) throw new Error(result.error || "Gmail listing sync failed.");
+
+  const summary = summarizeListingEmailSync(result, dryRun);
+  setSocialPostSyncStatus(summary);
+  showToast(summary);
+  console.info("VA Command Center Gmail listing sync result", result);
+  if (!dryRun) {
+    await syncSocialPostsFromSheet();
+  }
+}
+
+function getSampleSocialPosts() {
+  const baseDate = todayArizonaISO();
+  const sampleImage = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='1080' height='1350' viewBox='0 0 1080 1350'%3E%3Crect width='1080' height='1350' fill='%23edf7f6'/%3E%3Ctext x='540' y='675' text-anchor='middle' font-family='Arial' font-size='54' fill='%23007466'%3EProcessed Sample%3C/text%3E%3C/svg%3E";
+  return [
+    {
+      id: "SAMPLE-COMING-SOON",
+      dateReceived: baseDate,
+      agentName: "Steele Nash",
+      listingType: "Coming Soon",
+      mlsNumber: "SAMPLE1001",
+      mlsLink: "https://example.com/mls/SAMPLE1001",
+      propertyAddress: "42610 N 22ND ST, Phoenix, AZ 85086",
+      price: "$1,250,000",
+      bedrooms: "4",
+      bathrooms: "3",
+      squareFeet: "3,210",
+      mlsDescription: "Private desert living with elevated finishes, open gathering spaces, and mountain views.",
+      duplicateValidation: "Sample unique task",
+      statusWorkflow: "Needs Design",
+      logoType: "Luxury eXp",
+      agentInstagramHandle: "@steelenash",
+      graphicsCreated: "NO",
+      posted: "NO",
+      isSample: true
+    },
+    {
+      id: "SAMPLE-NEW-LISTING",
+      dateReceived: baseDate,
+      agentName: "Ari Jakobov",
+      listingType: "New Listing",
+      mlsNumber: "SAMPLE1002",
+      propertyAddress: "9914 W BRIGHT ANGEL CIR, Sun City, AZ 85351",
+      price: "$425,000",
+      statusWorkflow: "New",
+      logoType: "Regular eXp",
+      agentInstagramHandle: "@arijakobov",
+      graphicsCreated: "NO",
+      posted: "NO",
+      isSample: true
+    },
+    {
+      id: "SAMPLE-ACTIVE",
+      dateReceived: baseDate,
+      agentName: "Stephanie Pieper",
+      listingType: "Active",
+      mlsNumber: "SAMPLE1003",
+      propertyAddress: "7445 W YUKON DR, Peoria, AZ 85382",
+      price: "$735,000",
+      statusWorkflow: "Needs Photos",
+      logoType: "Regular eXp",
+      agentInstagramHandle: "@stephpieper",
+      graphicsCreated: "YES",
+      posted: "NO",
+      isSample: true
+    },
+    {
+      id: "SAMPLE-PENDING",
+      dateReceived: baseDate,
+      agentName: "Catherine",
+      listingType: "Pending",
+      mlsNumber: "SAMPLE1004",
+      propertyAddress: "1842 E DESERT LN, Phoenix, AZ 85042",
+      price: "$899,000",
+      statusWorkflow: "Needs Caption",
+      logoType: "Regular eXp",
+      agentInstagramHandle: "@catherine",
+      graphicsCreated: "YES",
+      posted: "NO",
+      isSample: true
+    },
+    {
+      id: "SAMPLE-UNDER-CONTRACT",
+      dateReceived: baseDate,
+      agentName: "James",
+      listingType: "Under Contract",
+      mlsNumber: "SAMPLE1005",
+      propertyAddress: "3120 N 57TH PL, Scottsdale, AZ 85251",
+      price: "$1,050,000",
+      statusWorkflow: "Caption Ready",
+      logoType: "Luxury eXp",
+      agentInstagramHandle: "@james",
+      caption: "UNDER CONTRACT\n3120 N 57TH PL, Scottsdale, AZ 85251\n\nA polished Scottsdale residence is now under contract.\n\nFeature breakdown:\n4 bedrooms\n3 bathrooms\n\nExclusively listed by @james and @thejakobovgroup\n\n#arizona #RealEstate #TheJakobovGroup",
+      graphicsCreated: "YES",
+      posted: "NO",
+      isSample: true
+    },
+    {
+      id: "SAMPLE-CLOSED",
+      dateReceived: baseDate,
+      agentName: "Sam",
+      listingType: "Closed",
+      mlsNumber: "SAMPLE1006",
+      propertyAddress: "1010 E CAMELBACK RD, Phoenix, AZ 85014",
+      price: "$675,000",
+      statusWorkflow: "Ready To Send To WhatsApp",
+      logoType: "Regular eXp",
+      agentInstagramHandle: "@sam",
+      graphicsCreated: "YES",
+      posted: "NO",
+      processedPhotos: { "Living Room": sampleImage, Kitchen: sampleImage },
+      caption: "CLOSED\n1010 E CAMELBACK RD, Phoenix, AZ 85014\n\nAnother strong Phoenix result for our clients.\n\nExclusively listed by @sam and @thejakobovgroup\n\n#arizona #RealEstate #TheJakobovGroup",
+      isSample: true
+    },
+    {
+      id: "SAMPLE-CANCELED",
+      dateReceived: baseDate,
+      agentName: "Joe",
+      listingType: "Canceled",
+      mlsNumber: "SAMPLE1007",
+      propertyAddress: "2020 W SAMPLE AVE, Glendale, AZ 85301",
+      price: "$500,000",
+      statusWorkflow: "Canceled",
+      duplicateValidation: "Sample canceled task",
+      logoType: "Regular eXp",
+      posted: "NO",
+      isSample: true
+    },
+    {
+      id: "SAMPLE-MISSING-MLS",
+      dateReceived: baseDate,
+      agentName: "Kath",
+      listingType: "New Listing",
+      mlsNumber: "",
+      propertyAddress: "5050 N SAMPLE WAY, Phoenix, AZ 85018",
+      price: "$1,300,000",
+      statusWorkflow: "New",
+      logoType: "Luxury eXp",
+      agentInstagramHandle: "@kath",
+      duplicateValidation: "Missing MLS sample",
+      posted: "NO",
+      isSample: true
+    },
+    {
+      id: "SAMPLE-MISSING-HANDLE",
+      dateReceived: baseDate,
+      agentName: "Svetlana",
+      listingType: "Pending",
+      mlsNumber: "SAMPLE1008",
+      propertyAddress: "6060 E SAMPLE CT, Mesa, AZ 85205",
+      price: "$640,000",
+      statusWorkflow: "Needs Caption",
+      logoType: "Regular eXp",
+      agentInstagramHandle: "",
+      posted: "NO",
+      isSample: true
+    },
+    {
+      id: "SAMPLE-DUPLICATE",
+      dateReceived: baseDate,
+      agentName: "Steele Nash",
+      listingType: "Coming Soon",
+      mlsNumber: "SAMPLE1001",
+      propertyAddress: "42610 N 22ND ST, Phoenix, AZ 85086",
+      price: "$1,250,000",
+      statusWorkflow: "Canceled",
+      duplicateValidation: "Duplicate sample: same MLS# plus same Listing Type",
+      logoType: "Luxury eXp",
+      posted: "NO",
+      isSample: true
+    }
+  ];
+}
+
+function loadSampleSocialPosts() {
+  const existingNonSamples = state.socialPosts.filter((post) => !post.isSample);
+  if (state.socialPosts.length && !window.confirm("Load sample social posts? Existing real/synced tasks will stay, and old samples will be replaced.")) return;
+  state.socialPosts = [...getSampleSocialPosts(), ...existingNonSamples];
+  saveState();
+  renderSocialPosts();
+  setSocialPostSyncStatus("Sample social posts loaded locally. They will not sync to Google Sheets unless you manually copy a payload.");
+  showToast("Sample social posts loaded.");
+}
+
+function clearSampleSocialPosts() {
+  const sampleCount = state.socialPosts.filter((post) => post.isSample || String(post.id || "").startsWith("SAMPLE-")).length;
+  if (!sampleCount) {
+    showToast("No sample social posts to clear.");
+    return;
+  }
+  if (!window.confirm(`Clear ${sampleCount} sample social post tasks? Real/synced tasks will stay.`)) return;
+  state.socialPosts = state.socialPosts.filter((post) => !post.isSample && !String(post.id || "").startsWith("SAMPLE-"));
+  saveState();
+  renderSocialPosts();
+  showToast("Sample social posts cleared.");
+}
+
 function normalizeSocialListingType(value) {
   const text = String(value || "").trim().toLowerCase();
   if (text.includes("coming")) return "Coming Soon";
   if (text.includes("under")) return "Under Contract";
   if (text.includes("pending")) return "Pending";
   if (text.includes("closed") || text.includes("sold")) return "Closed";
-  if (text.includes("new") || text.includes("active")) return "New Listing";
+  if (text.includes("active")) return "Active";
+  if (text.includes("new")) return "New Listing";
   return String(value || "New Listing").trim() || "New Listing";
 }
 
@@ -1149,7 +1383,7 @@ function getVisibleSocialPosts() {
     const duplicate = String(post.duplicateValidation || "").toLowerCase().includes("duplicate") || status === "Duplicate or Cancelled";
 
     if (activeSocialPostFilter === "All" && isSocialPostCompleted(post)) return false;
-    if (["Coming Soon", "New Listing", "Pending", "Under Contract", "Closed"].includes(activeSocialPostFilter) && type !== activeSocialPostFilter) return false;
+    if (["Coming Soon", "New Listing", "Active", "Pending", "Under Contract", "Closed", "Canceled"].includes(activeSocialPostFilter) && type !== activeSocialPostFilter) return false;
     if (socialWorkflowStatuses.includes(activeSocialPostFilter) && status !== activeSocialPostFilter) return false;
     if (activeSocialPostFilter === "Duplicate" && !duplicate) return false;
 
@@ -1162,6 +1396,7 @@ function renderSocialPostSummary() {
   const summary = document.querySelector("#socialPostSummary");
   if (!summary) return;
   const countByStatus = (status) => state.socialPosts.filter((post) => post.statusWorkflow === status && !isSocialPostCompleted(post)).length;
+  const postedCount = state.socialPosts.filter((post) => post.posted === "YES" || post.statusWorkflow === "Posted").length;
   const postedThisWeek = state.socialPosts.filter((post) => post.posted === "YES" && isDateThisWeek(post.datePosted)).length;
   summary.innerHTML = `
     <article class="metric compact-metric"><span>New</span><strong>${countByStatus("New")}</strong></article>
@@ -1171,6 +1406,7 @@ function renderSocialPostSummary() {
     <article class="metric compact-metric"><span>Needs Caption</span><strong>${countByStatus("Needs Caption")}</strong></article>
     <article class="metric compact-metric"><span>Caption Ready</span><strong>${countByStatus("Caption Ready")}</strong></article>
     <article class="metric compact-metric"><span>Ready To WhatsApp</span><strong>${countByStatus("Ready To Send To WhatsApp")}</strong></article>
+    <article class="metric compact-metric"><span>Posted</span><strong>${postedCount}</strong></article>
     <article class="metric compact-metric"><span>Posted This Week</span><strong>${postedThisWeek}</strong></article>
   `;
 }
@@ -1293,6 +1529,7 @@ function renderSocialPostCard(post) {
         ${socialField("MLS#", post.mlsNumber)}
         ${socialField("Price", formatPriceLabel(post.price))}
         ${socialField("Logo Type", logoType)}
+        ${socialField("Agent Headshot", post.agentHeadshotLink || getHeadshotLinkFromSelection(post.agentHeadshotFile || getSuggestedHeadshot(post).selected), true)}
         ${socialField("Bedrooms", post.bedrooms)}
         ${socialField("Bathrooms", post.bathrooms)}
         ${socialField("Approx. Sq Ft", post.squareFeet)}
@@ -1334,12 +1571,19 @@ function renderSocialPostCard(post) {
         <span>Quick Actions</span>
         <div class="button-row">
           <button data-social-action="save-details" data-id="${escapeHTML(post.id)}" type="button">Save Details</button>
+          <button class="quiet" data-social-action="mark-needs-design" data-id="${escapeHTML(post.id)}" type="button">Mark Needs Design</button>
+          <button class="quiet" data-social-action="mark-design-done" data-id="${escapeHTML(post.id)}" type="button">Mark Design Done</button>
+          <button class="quiet" data-social-action="mark-needs-photos" data-id="${escapeHTML(post.id)}" type="button">Mark Needs Photos</button>
+          <button class="quiet" data-social-action="mark-photos-selected" data-id="${escapeHTML(post.id)}" type="button">Mark Photos Selected</button>
+          <button class="quiet" data-social-action="mark-photo-prep-ready" data-id="${escapeHTML(post.id)}" type="button">Mark Photo Prep Ready</button>
           <button data-social-action="generate-caption" data-id="${escapeHTML(post.id)}" type="button">Generate Caption</button>
+          <button class="quiet" data-social-action="mark-caption-ready" data-id="${escapeHTML(post.id)}" type="button">Mark Caption Ready</button>
           <button class="quiet" data-social-action="copy-caption" data-id="${escapeHTML(post.id)}" type="button">Copy Caption</button>
           <button class="quiet" data-social-action="open-mls" data-id="${escapeHTML(post.id)}" type="button">Open MLS Link</button>
           <button class="quiet" data-social-action="graphics-link" data-id="${escapeHTML(post.id)}" type="button">Add Graphics Link</button>
-          <button class="quiet" data-social-action="ig-link" data-id="${escapeHTML(post.id)}" type="button">Add IG Post Link</button>
-          <button class="quiet" data-social-action="whatsapp" data-id="${escapeHTML(post.id)}" type="button">Prepare WhatsApp</button>
+          <button class="quiet" data-social-action="ig-link" data-id="${escapeHTML(post.id)}" type="button">Save IG Post Link</button>
+          <button class="quiet" data-social-action="whatsapp" data-id="${escapeHTML(post.id)}" type="button">Prepare WhatsApp Handoff</button>
+          <button class="quiet" data-social-action="mark-ready-whatsapp" data-id="${escapeHTML(post.id)}" type="button">Mark Ready To Send To WhatsApp</button>
           <button data-social-action="mark-posted" data-id="${escapeHTML(post.id)}" type="button">Mark Posted</button>
         </div>
       </div>
@@ -1497,8 +1741,33 @@ async function generateCaptionWithServer(post) {
   return result.caption;
 }
 
+async function generateCaptionFromBuilder() {
+  const agentHandle = document.querySelector("#captionAgent").value.trim();
+  if (!agentHandle) {
+    showToast("Agent handle missing. Add before finalizing caption.");
+    setSocialPostSyncStatus("Caption warning: agent handle is missing.");
+  }
+  const payload = {
+    id: "CAPTION-BUILDER",
+    propertyAddress: document.querySelector("#captionAddress").value.trim(),
+    listingType: document.querySelector("#captionStatus").value,
+    status: document.querySelector("#captionStatus").value,
+    agentName: "",
+    agentInstagramHandle: agentHandle,
+    mlsDescription: document.querySelector("#captionDetails").value.trim(),
+    description: document.querySelector("#captionDetails").value.trim()
+  };
+  const caption = await generateCaptionWithServer(payload);
+  document.querySelector("#captionOutput").value = caption;
+  showToast("Caption generated with ChatGPT.");
+}
+
 function buildWhatsAppHandoff(post) {
   const photoCount = Object.keys(post.processedPhotos || {}).length;
+  const photoChecklist = socialPhotoSlots.map((slot) => {
+    const ready = post.processedPhotos?.[slot] ? "READY" : "NEEDS PHOTO";
+    return `${slot}: ${ready}`;
+  }).join("\n");
   return `Listing package ready for Instagram
 
 Property: ${post.propertyAddress || "Not set"}
@@ -1509,11 +1778,27 @@ Logo: ${post.logoType || getLogoTypeForPrice(post.price)}
 Agent headshot: ${post.agentHeadshotLink || getHeadshotLinkFromSelection(post.agentHeadshotFile) || "Not selected"}
 Canva video: ${post.canvaVideoLink || post.graphicsLink || "Not added"}
 Processed photos: ${photoCount}/6
+${photoChecklist}
 
 Caption:
 ${post.caption || "Caption not generated yet."}
 
 Posting note: Post manually on phone, add music, then paste IG link back into VA Command Center.`;
+}
+
+function isInstagramUrl(value) {
+  return /^https?:\/\/(www\.)?instagram\.com\/(p|reel|tv)\/[A-Za-z0-9_-]+/i.test(String(value || "").trim());
+}
+
+function getWhatsAppHandoffWarnings(post) {
+  const warnings = [];
+  const selectedHeadshot = post.agentHeadshotLink || getHeadshotLinkFromSelection(post.agentHeadshotFile);
+  const photoCount = Object.keys(post.processedPhotos || {}).length;
+  if (!post.caption) warnings.push("Generate or paste the caption first.");
+  if (!selectedHeadshot && post.agentHeadshotConfirmed !== "YES") warnings.push("Confirm or select the agent headshot.");
+  if (!(post.agentInstagramHandle || getAgentProfile(post.agentName).instagram)) warnings.push("Agent handle missing. Add before finalizing caption.");
+  if (!photoCount) warnings.push("At least one processed image should be ready before WhatsApp handoff.");
+  return warnings;
 }
 
 async function processListingPhoto(postId, slot, file) {
@@ -1527,6 +1812,27 @@ async function processListingPhoto(postId, slot, file) {
 }
 function handleSocialPostAction(action, post) {
   if (!post) return;
+  const workflowActionMap = {
+    "mark-needs-design": "Needs Design",
+    "mark-design-done": "Design Done",
+    "mark-needs-photos": "Needs Photos",
+    "mark-photos-selected": "Photos Selected",
+    "mark-photo-prep-ready": "Photo Prep Ready",
+    "mark-caption-ready": "Caption Ready",
+    "mark-ready-whatsapp": "Ready To Send To WhatsApp"
+  };
+  if (workflowActionMap[action]) {
+    if (action === "mark-ready-whatsapp") {
+      const warnings = getWhatsAppHandoffWarnings(post);
+      if (warnings.length && !window.confirm(`Ready To Send To WhatsApp has warnings:\n\n${warnings.join("\n")}\n\nContinue anyway?`)) {
+        setSocialPostSyncStatus(`Ready To WhatsApp blocked: ${warnings.join(" ")}`);
+        return;
+      }
+    }
+    updateSocialPost(post.id, { statusWorkflow: workflowActionMap[action] });
+    showToast(`Workflow moved to ${workflowActionMap[action]}.`);
+    return;
+  }
   if (action === "save-details") {
     const patch = collectSocialPostDetailsFromCard(post);
     updateSocialPost(post.id, patch);
@@ -1584,6 +1890,11 @@ function handleSocialPostAction(action, post) {
     return;
   }
   if (action === "whatsapp") {
+    const warnings = getWhatsAppHandoffWarnings(post);
+    if (warnings.length && !window.confirm(`WhatsApp handoff has warnings:\n\n${warnings.join("\n")}\n\nCopy handoff anyway?`)) {
+      setSocialPostSyncStatus(`WhatsApp handoff needs review: ${warnings.join(" ")}`);
+      return;
+    }
     const handoff = buildWhatsAppHandoff(post);
     updateSocialPost(post.id, { statusWorkflow: "Ready To Send To WhatsApp" });
     copyText(handoff);
@@ -1594,6 +1905,12 @@ function handleSocialPostAction(action, post) {
     const igPostLink = window.prompt("Paste the Instagram post link to mark this as posted:", post.igPostLink || "");
     if (!igPostLink) {
       showToast("Instagram link is required before marking posted.");
+      setSocialPostSyncStatus("Missing IG post link. Paste the Instagram URL before marking posted.");
+      return;
+    }
+    if (!isInstagramUrl(igPostLink)) {
+      showToast("That does not look like an Instagram post or reel URL.");
+      setSocialPostSyncStatus("Missing valid IG post link. Use an Instagram /p/ or /reel/ URL.");
       return;
     }
     updateSocialPost(post.id, {
@@ -2351,6 +2668,20 @@ document.addEventListener("DOMContentLoaded", () => {
       showToast("Social post sync failed.");
     });
   });
+  document.querySelector("#syncListingEmailsBtn")?.addEventListener("click", () => {
+    syncListingEmails({ dryRun: false }).catch((error) => {
+      setSocialPostSyncStatus(`Gmail listing sync failed: ${error.message}`);
+      showToast("Gmail listing sync failed.");
+    });
+  });
+  document.querySelector("#dryRunListingEmailsBtn")?.addEventListener("click", () => {
+    syncListingEmails({ dryRun: true }).catch((error) => {
+      setSocialPostSyncStatus(`Gmail listing sync test failed: ${error.message}`);
+      showToast("Gmail listing sync test failed.");
+    });
+  });
+  document.querySelector("#loadSampleSocialPostsBtn")?.addEventListener("click", loadSampleSocialPosts);
+  document.querySelector("#clearSampleSocialPostsBtn")?.addEventListener("click", clearSampleSocialPosts);
 
   document.querySelector("#addLocalSocialPostBtn")?.addEventListener("click", openLocalSocialPostModal);
 
@@ -2411,6 +2742,13 @@ document.addEventListener("DOMContentLoaded", () => {
       details: document.querySelector("#captionDetails").value.trim()
     });
     document.querySelector("#captionOutput").value = caption;
+  });
+  document.querySelector("#generateCaptionWithChatGptBtn")?.addEventListener("click", () => {
+    showToast("Generating caption...");
+    generateCaptionFromBuilder().catch((error) => {
+      setSocialPostSyncStatus(`Caption server error: ${error.message}`);
+      showToast("Caption server is not running or OpenAI is not configured.");
+    });
   });
 
   document.querySelector("#useVideoTemplateBtn").addEventListener("click", () => {

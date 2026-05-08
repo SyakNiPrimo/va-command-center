@@ -6,8 +6,11 @@
  * 2. Go to Extensions > Apps Script.
  * 3. Paste this file into the Apps Script editor.
  * 4. Deploy > New deployment > Web app.
- * 5. Execute as: Me. Access: Anyone with the link, or your Workspace users.
- * 6. Copy the Web app URL into app.js as socialPostsSyncUrl.
+ * 5. Execute as: Me.
+ * 6. Who has access: Anyone with the link, or your Workspace users.
+ * 7. doGet returns active rows. Add ?includeCompleted=true to return all rows.
+ * 8. doPost updates one row by ID with allowed fields only.
+ * 9. Copy the Web app URL into app.js as socialPostsSyncUrl.
  */
 
 const SPREADSHEET_ID = "1nmdNyzfdG7V3guU7BmghtTaujAun7TDkRyK5WefTJ04";
@@ -56,32 +59,7 @@ const TRACKING_HEADERS = [
   "Date Processed"
 ];
 
-const UPDATE_HEADERS = [
-  "Graphics Created?",
-  "Graphics Link",
-  "Posted",
-  "Date Posted",
-  "IG Post Link",
-  "Status (Workflow)",
-  "Duplicate Validation",
-  "Price",
-  "Bedrooms",
-  "Bathrooms",
-  "Approximate Square Feet",
-  "MLS Description",
-  "Logo Type",
-  "Agent Headshot Link",
-  "Agent Headshot File",
-  "Agent Headshot Found",
-  "Agent Headshot Confirmed",
-  "Agent Name Confirmed",
-  "Agent Phone Confirmed",
-  "Agent Email Confirmed",
-  "Agent Instagram Handle",
-  "Agent Instagram Handle Confirmed",
-  "Canva Video Link",
-  "Caption"
-];
+const UPDATE_HEADERS = REQUIRED_HEADERS.concat(TRACKING_HEADERS).filter((header) => header !== "ID");
 
 function doGet(event) {
   let result;
@@ -199,6 +177,12 @@ function ensureHeaders(sheet) {
 
 function normalizeUpdates(source) {
   const aliasMap = {
+    dateReceived: "Date Received",
+    agentName: "Agent Name",
+    listingType: "Listing Type",
+    mlsNumber: "MLS#",
+    mlsLink: "MLS Link",
+    propertyAddress: "Property Address",
     graphicsCreated: "Graphics Created?",
     graphicsLink: "Graphics Link",
     posted: "Posted",

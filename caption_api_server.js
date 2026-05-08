@@ -46,7 +46,9 @@ function localFallback(body) {
 }
 
 async function generateCaption(body) {
-  if (!apiKey) return { caption: localFallback(body), fallback: true };
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY is missing. Copy caption_local.env.example to caption_local.env, add OPENAI_API_KEY, then restart the caption server.");
+  }
   const prompt = `Create an Instagram real estate caption using these rules:\n- Status in ALL CAPS\n- Full property address on first line\n- No hyphens or em dashes\n- Max 5 hashtags\n- Always include #arizona #RealEstate #TheJakobovGroup\n- Use only the agent Instagram handle and @thejakobovgroup in the Exclusively listed by line\n- Polished modern Arizona luxury real estate tone\n\nListing data:\n${JSON.stringify(body, null, 2)}`;
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
@@ -70,7 +72,14 @@ const server = http.createServer(async (req, res) => {
   try {
     if (req.method === "OPTIONS") return json(res, 200, { ok: true });
     const url = new URL(req.url, `http://127.0.0.1:${port}`);
-    if (url.pathname === "/status") return json(res, 200, { ok: true, configured: Boolean(apiKey), model });
+    if (url.pathname === "/status" || url.pathname === "/health") {
+      return json(res, 200, {
+        ok: true,
+        configured: Boolean(apiKey),
+        model,
+        message: apiKey ? "Caption server ready." : "OPENAI_API_KEY is missing. Add it to caption_local.env and restart."
+      });
+    }
     if (url.pathname === "/generate-caption" && req.method === "POST") {
       const body = await readBody(req);
       const result = await generateCaption(body);

@@ -206,7 +206,11 @@
             <p class="section-note">Active listing post tasks from Gmail and Google Sheets will appear here. Posting to Instagram stays manual.</p>
           </div>
           <div class="button-row">
+            <button id="syncListingEmailsBtn" type="button">Sync Listing Emails</button>
+            <button id="dryRunListingEmailsBtn" type="button" class="quiet">Test Email Sync</button>
             <button id="syncSocialPostsBtn" type="button">Sync Social Posts</button>
+            <button id="loadSampleSocialPostsBtn" type="button" class="quiet">Load Sample Social Posts</button>
+            <button id="clearSampleSocialPostsBtn" type="button" class="quiet">Clear Samples</button>
             <button id="addLocalSocialPostBtn" type="button" class="quiet">Add Local Task</button>
           </div>
         </div>
@@ -224,6 +228,7 @@
         <p class="duplicate-note"><strong>Duplicate Protection:</strong> Same property with the same listing type is treated as a duplicate. The same property can still move through Coming Soon, New Listing, Pending, Under Contract, and Closed.</p>
 
         <div id="socialPostSyncStatus" class="sync-inline-status">Social posts sync: local only until the Apps Script URL is added.</div>
+        <pre id="socialPostPayloadPreview" class="payload-preview" hidden></pre>
         <div id="socialPostTrackerList" class="social-post-list"></div>
       </article>
 
@@ -234,13 +239,17 @@
           <select id="captionStatus">
             <option>COMING SOON</option>
             <option>NEW LISTING</option>
+            <option>ACTIVE</option>
             <option>PENDING</option>
             <option>UNDER CONTRACT</option>
             <option>CLOSED</option>
           </select>
           <input id="captionAgent" placeholder="@agenthandle">
           <textarea id="captionDetails" placeholder="Luxury description, key features, beds, baths, square footage"></textarea>
-          <button type="submit">Build Caption</button>
+          <div class="button-row">
+            <button type="submit">Build Caption</button>
+            <button id="generateCaptionWithChatGptBtn" type="button" class="quiet">Generate With ChatGPT</button>
+          </div>
         </form>
         <textarea id="captionOutput" readonly placeholder="Your caption will appear here"></textarea>
       </article>

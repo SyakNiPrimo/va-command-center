@@ -189,15 +189,19 @@ Until the URL is added, the sync button copies the attendance payload so nothing
 
 ## Daily Workflow
 
-1. Open `index.html`.
+1. Open the dashboard.
 2. Copy and send the meeting reminder.
 3. Paste the morning Zoom link into Read.ai: `https://us06web.zoom.us/j/7251527919`.
-4. Review Top 3 Must Finish Tasks.
-5. Add new social media, email, admin, attendance, and meeting tasks.
-6. Move blocked work into the correct waiting status.
-7. Mark completed tasks during the day.
-8. Use the end of day template to report completed work and tomorrow priorities.
-9. Open the EOD Report tab, regenerate the report, and copy it for Ari.
+4. Click **Sync Listing Emails** in the Social tab.
+5. Click **Sync Social Posts**.
+6. Verify each listing agent, headshot, logo type, phone, email, and Instagram handle.
+7. Create the Canva design and paste the Canva video or graphics link.
+8. Upload or select the six MLS photos and generate photo prep.
+9. Generate the caption.
+10. Prepare the WhatsApp handoff package.
+11. Post manually from the phone and add music.
+12. Paste the IG post link and click **Mark Posted**.
+13. Open the EOD Report tab, regenerate the report, and copy it for Ari.
 
 ## Build Instructions
 
@@ -207,11 +211,15 @@ Open this file in a browser:
 
 `C:\Users\Benedick\Documents\VA Command Center\index.html`
 
-Optional local server:
+Recommended local server:
 
 ```powershell
-npx serve .
+node local-static-server.js
 ```
+
+Then open:
+
+`http://127.0.0.1:5500/`
 
 ## Code Implementation Plan For Future Versions
 
@@ -251,6 +259,47 @@ Google Apps Script files:
 - `social-posts-sync-apps-script.js` reads and updates the `Social Post Tasks` sheet tab.
 - `gmail-listing-sync-apps-script.js` scans Gmail label `Listing Updates`, avoids duplicates, and creates new listing tasks.
 
+### Social Posts Google Sheets Sync Setup
+
+1. Open the Task Tracker sheet.
+2. Go to Extensions > Apps Script.
+3. Paste `social-posts-sync-apps-script.js`.
+4. Deploy > New deployment > Web app.
+5. Set **Execute as** to `Me`.
+6. Set access to `Anyone with the link` or your Workspace users.
+7. Copy the Web app URL.
+8. Paste it into `app.js` as `socialPostsSyncUrl`.
+
+The script safely creates missing `Social Post Tasks` columns, supports `includeCompleted=true`, and updates rows by `ID`.
+
+Required columns include:
+
+`ID`, `Date Received`, `Agent Name`, `Listing Type`, `MLS#`, `MLS Link`, `Property Address`, `Price`, `Bedrooms`, `Bathrooms`, `Approximate Square Feet`, `MLS Description`, `Duplicate Validation`, `Status (Workflow)`, `Logo Type`, `Agent Headshot Link`, `Agent Headshot File`, `Agent Headshot Found`, `Agent Headshot Confirmed`, `Agent Name Confirmed`, `Agent Phone Confirmed`, `Agent Email Confirmed`, `Agent Instagram Handle`, `Agent Instagram Handle Confirmed`, `Subject`, `Email Template`, `Canva Video Link`, `Graphics Created?`, `Posted`, `Date Posted`, `Graphics Link`, `Caption`, `IG Post Link`, `Source Email ID`, `Source Email Subject`, `Source Email Date`, `Date Processed`.
+
+### Gmail Listing Updates Sync Setup
+
+1. In Gmail, create these labels:
+   - `Listing Updates`
+   - `Processed Listing Updates`
+   - `Needs Review Listing Updates`
+2. Add new MLS/listing status emails to `Listing Updates`.
+3. Open the Task Tracker sheet.
+4. Go to Extensions > Apps Script.
+5. Paste `gmail-listing-sync-apps-script.js`.
+6. Deploy > New deployment > Web app.
+7. Set **Execute as** to `Me`.
+8. Set access to `Anyone with the link` or your Workspace users.
+9. Copy the Web app URL.
+10. Paste it into `app.js` as `gmailListingSyncUrl`.
+
+Test without changing Gmail or Sheets:
+
+```text
+WEB_APP_URL?dryRun=true
+```
+
+The Social tab also has **Test Email Sync**, which calls the same dry run mode.
+
 Caption server setup:
 
 1. Copy `caption_local.env.example` to `caption_local.env`.
@@ -259,6 +308,15 @@ Caption server setup:
 4. Keep the server window open while using **Generate Caption** in the Social tab.
 
 The OpenAI API key is never stored in frontend files.
+
+### Testing With Sample Data
+
+Use the Social tab buttons:
+
+- **Load Sample Social Posts** adds local sample listing tasks for Coming Soon, New Listing, Active, Pending, Under Contract, Closed, Canceled, Missing MLS, Missing Agent Handle, and Duplicate.
+- **Clear Samples** removes only sample rows and keeps real or synced rows.
+
+Sample data is local only. It does not overwrite Google Sheets data unless you manually copy and use an update payload.
 ## Agent Headshots Source
 
 Official Google Drive folder:

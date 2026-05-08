@@ -1035,6 +1035,19 @@ main {
 .headshot-selector .small-muted {
   grid-column: 1 / -1;
 }
+
+.payload-preview {
+  max-height: 220px;
+  overflow: auto;
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  border-radius: 8px;
+  border: 1px solid #b7d7cf;
+  background: #0f172a;
+  color: #e5f6f2;
+  font-size: 0.78rem;
+  white-space: pre-wrap;
+}
 .mini-check-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
