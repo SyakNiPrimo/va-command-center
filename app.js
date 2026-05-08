@@ -309,32 +309,6 @@ const syncSnapshot = {
       location: "2303 E Wescott Dr, Phoenix, AZ 85024, USA",
       url: "https://www.google.com/calendar/event?eid=MDE3bXNudHM4b2x2cG1nZ2dlcTBxMmMxMHZfMjAyNjA1MDZUMTUzMDAwWiBiZW5AamFrb2Jvdmdyb3VwLmNvbQ&ctz=Asia/Taipei"
     }
-  ],
-  drive: [
-    {
-      title: "Swoop It Up - 948 Distributor Contacts Cleaned",
-      url: "https://docs.google.com/spreadsheets/d/1CPa4XC8XEHcjTnTPN_Ito0k57M2_DJX0ZpULRLkpCo4",
-      type: "Spreadsheet",
-      updated: "2026-05-04T19:50:30.934Z"
-    },
-    {
-      title: "ALL licenses Cannabis Companies in CA (1) - with businessPhone and businessOwnerName",
-      url: "https://docs.google.com/spreadsheets/d/1aS5oIGqAOPJlNOG20x6zynwDbhT24yMNehTqlIV44YQ",
-      type: "Spreadsheet",
-      updated: "2026-05-04T19:40:36.502Z"
-    },
-    {
-      title: "Swoop It Up Email Campaign V1",
-      url: "https://docs.google.com/document/d/1BjRdY2oe4zDxsJ_sK7bB3Eyw6VgOWQycpG7nn6Lfgvo",
-      type: "Document",
-      updated: "2026-05-01T21:04:54.632Z"
-    },
-    {
-      title: "Swoop It Up Outreach Tracker",
-      url: "https://docs.google.com/spreadsheets/d/1vkGrbNTIC6nleH60UDJBjWa0M1fxICFvNJMXLcpxDpA",
-      type: "Spreadsheet",
-      updated: "2026-04-29T19:04:36.424Z"
-    }
   ]
 };
 
@@ -1004,17 +978,6 @@ function renderSync() {
     events.appendChild(item);
   });
 
-  const drive = document.querySelector("#syncDrive");
-  drive.innerHTML = "";
-  syncSnapshot.drive.forEach((file) => {
-    const item = document.createElement("div");
-    item.className = "sync-item";
-    item.innerHTML = `
-      <a href="${file.url}" target="_blank" rel="noreferrer">${escapeHTML(file.title)}</a>
-      <p class="small-muted">${escapeHTML(file.type)} | Updated ${escapeHTML(formatDateTime(file.updated))}</p>
-    `;
-    drive.appendChild(item);
-  });
 }
 
 function createAttendanceSession(date = document.querySelector("#attendanceDate")?.value || todayArizonaISO()) {
