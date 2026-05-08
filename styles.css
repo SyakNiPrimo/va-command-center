@@ -36,37 +36,58 @@ body {
   place-items: center;
   padding: 24px;
   background:
-    radial-gradient(circle at top left, rgba(200, 173, 95, 0.22), transparent 360px),
-    linear-gradient(135deg, #111111 0%, #24211b 100%);
+    radial-gradient(circle at 18% 12%, rgba(200, 173, 95, 0.2), transparent 360px),
+    radial-gradient(circle at 82% 88%, rgba(255, 255, 255, 0.08), transparent 320px),
+    linear-gradient(135deg, #0d0d0d 0%, #24211b 100%);
 }
 
 .login-card {
   display: grid;
-  gap: 14px;
-  width: min(420px, 100%);
-  border: 1px solid rgba(200, 173, 95, 0.32);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.96);
-  padding: 26px;
-  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.32);
+  gap: 16px;
+  width: min(430px, 100%);
+  border: 1px solid rgba(200, 173, 95, 0.24);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.98);
+  padding: 30px;
+  box-shadow: 0 30px 90px rgba(0, 0, 0, 0.34);
 }
 
 .login-card img {
-  width: 210px;
-  max-width: 72%;
-  border-radius: 12px;
-  background: #111111;
-  padding: 10px;
+  justify-self: center;
+  width: min(285px, 86%);
+  height: auto;
+  max-height: 150px;
+  object-fit: contain;
+  margin: 2px 0 8px;
 }
 
 .login-card h1 {
   margin: 0;
-  font-size: 1.7rem;
+  color: #111111;
+  font-size: 1.75rem;
+  text-align: center;
 }
 
 .login-card p {
-  margin: 0.2rem 0 0;
+  margin: 0.22rem 0 0;
   color: var(--muted);
+  text-align: center;
+}
+
+.login-card > div {
+  display: grid;
+  gap: 2px;
+  margin-bottom: 2px;
+  text-align: center;
+}
+
+.login-card .eyebrow {
+  color: #8d7433;
+  text-align: center;
+}
+
+.login-card label:not(.remember-field) {
+  gap: 0.42rem;
 }
 
 .remember-field {
@@ -74,6 +95,7 @@ body {
   grid-template-columns: auto 1fr;
   align-items: center;
   gap: 8px;
+  margin-top: 2px;
 }
 
 .remember-field input {
@@ -83,11 +105,16 @@ body {
 
 .login-error {
   min-height: 18px;
+  margin: -2px 0 0 !important;
   color: var(--danger) !important;
   font-weight: 800;
+  text-align: left !important;
 }
 
 .login-note {
+  border-top: 1px solid rgba(17, 17, 17, 0.08);
+  margin-top: 2px !important;
+  padding-top: 12px;
   font-size: 0.78rem;
 }
 
