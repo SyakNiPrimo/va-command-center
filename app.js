@@ -832,6 +832,73 @@ function priorityRank(priority) {
   return priorities.indexOf(priority);
 }
 
+function getOpenTaskCount() {
+  return state.tasks.filter((task) => task.status !== "Completed").length;
+}
+
+function getListingsNeedingActionCount() {
+  return (state.socialPosts || []).filter((post) => !isSocialPostCompleted(post) && !["Posted", "Completed", "Canceled", "Duplicate or Cancelled"].includes(post.statusWorkflow)).length;
+}
+
+function getWaitingTaskCount() {
+  return state.tasks.filter((task) => task.status.startsWith("Waiting")).length;
+}
+
+function getCompletedThisWeekCount() {
+  return state.tasks.filter((task) => task.status === "Completed" && (!task.due || isDateThisWeek(task.due))).length;
+}
+
+function renderDashboardKpis() {
+  const container = document.querySelector("#dashboardKpis");
+  if (!container) return;
+  const trivia = getCurrentTriviaPost();
+  const payment = getCurrentPaymentRequest();
+  const paymentStatus = payment.sent ? "Sent" : isFridayArizona() ? "Due Today" : "Due Friday";
+  const triviaStatus = trivia?.status || "Idea";
+  const cards = [
+    ["Open Tasks", getOpenTaskCount(), "Active work queue"],
+    ["Listings Needing Action", getListingsNeedingActionCount(), "Social workflow"],
+    ["Trivia Status", triviaStatus, isWednesdayArizona() ? "Due today" : "Weekly post"],
+    ["Payment Request", paymentStatus, isFridayArizona() ? "Friday reminder" : "Weekly workflow"],
+    ["Waiting For Replies", getWaitingTaskCount(), "Follow ups"],
+    ["Completed This Week", getCompletedThisWeekCount(), "Done items"]
+  ];
+  container.innerHTML = cards.map(([label, value, note]) => `
+    <article class="dashboard-kpi-card">
+      <span>${escapeHTML(label)}</span>
+      <strong>${escapeHTML(String(value))}</strong>
+      <small>${escapeHTML(note)}</small>
+    </article>
+  `).join("");
+}
+
+function renderRecurringOverview() {
+  const container = document.querySelector("#recurringReminderOverview");
+  if (!container) return;
+  const payment = getCurrentPaymentRequest();
+  const trivia = getCurrentTriviaPost();
+  const paymentStatus = payment.sent ? "Sent" : isFridayArizona() ? "Due Today" : "Scheduled";
+  const triviaStatus = ["Posted", "Completed"].includes(trivia?.status) ? trivia.status : isWednesdayArizona() ? "Due Today" : trivia?.status || "Draft";
+  container.innerHTML = `
+    <article class="mini-reminder-card ${paymentStatus === "Due Today" ? "due" : ""}">
+      <div>
+        <span>Friday</span>
+        <strong>Weekly Payment Request</strong>
+        <p>Review hours, copy the message, and send it to Ari.</p>
+      </div>
+      <span class="status-pill">${escapeHTML(paymentStatus)}</span>
+    </article>
+    <article class="mini-reminder-card ${triviaStatus === "Due Today" ? "due" : ""}">
+      <div>
+        <span>Wednesday</span>
+        <strong>Arizona Trivia Post</strong>
+        <p>Prepare the carousel copy, design, caption, and manual post.</p>
+      </div>
+      <span class="status-pill">${escapeHTML(triviaStatus)}</span>
+    </article>
+  `;
+}
+
 function renderFocus() {
   const today = todayISO();
   const arizonaToday = todayArizonaISO();
@@ -2469,6 +2536,8 @@ function renderAll() {
   renderMeeting();
   renderFocus();
   renderPaymentRequest();
+  renderDashboardKpis();
+  renderRecurringOverview();
   renderTasks();
   renderSync();
   renderAttendance();
