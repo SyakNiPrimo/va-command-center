@@ -54,11 +54,11 @@ body {
 
 .login-card img {
   justify-self: center;
-  width: min(285px, 86%);
+  width: min(310px, 88%);
   height: auto;
-  max-height: 150px;
+  max-height: 172px;
   object-fit: contain;
-  margin: 2px 0 8px;
+  margin: 0 0 6px;
 }
 
 .login-card h1 {
