@@ -2106,20 +2106,26 @@ function renderSocialPostCard(post) {
         ${socialField("Date Received", post.dateReceived)}
         ${socialField("MLS#", post.mlsNumber)}
         ${socialField("Price", formatPriceLabel(post.price))}
-        ${socialField("Branding Type", listingBranding.label)}
-        ${socialField("Logo Type", logoType)}
-        ${socialField("Agent Headshot", post.agentHeadshotLink || getHeadshotLinkFromSelection(post.agentHeadshotFile || getSuggestedHeadshot(post).selected), true)}
         ${socialField("Bedrooms", post.bedrooms)}
         ${socialField("Bathrooms", post.bathrooms)}
         ${socialField("Approx. Sq Ft", post.squareFeet)}
-        ${socialField("MLS Link", post.mlsLink, true)}
-        ${socialField("Duplicate Validation", post.duplicateValidation)}
-        ${socialField("Canva Video", post.canvaVideoLink, true)}
-        ${socialField("Graphics Link", post.graphicsLink, true)}
-        ${socialField("IG Post Link", post.igPostLink, true)}
       </div>
 
-      <details class="listing-detail-panel" open>
+      <details class="listing-detail-panel">
+        <summary>Links, Branding And Tracking</summary>
+        <div class="social-field-grid compact">
+          ${socialField("Branding Type", listingBranding.label)}
+          ${socialField("Logo Type", logoType)}
+          ${socialField("MLS Link", post.mlsLink, true)}
+          ${socialField("Agent Headshot", post.agentHeadshotLink || getHeadshotLinkFromSelection(post.agentHeadshotFile || getSuggestedHeadshot(post).selected), true)}
+          ${socialField("Duplicate Validation", post.duplicateValidation)}
+          ${socialField("Canva Video", post.canvaVideoLink, true)}
+          ${socialField("Graphics Link", post.graphicsLink, true)}
+          ${socialField("IG Post Link", post.igPostLink, true)}
+        </div>
+      </details>
+
+      <details class="listing-detail-panel">
         <summary>Listing Details And Agent Check</summary>
         <div class="social-edit-grid">
           ${renderHeadshotSelector(post)}
