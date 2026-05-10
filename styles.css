@@ -984,14 +984,24 @@ main,
 }
 
 .table-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.25rem;
-  min-width: 175px;
+  display: grid;
+  grid-template-columns: minmax(112px, 1fr) max-content;
+  gap: 0.4rem;
+  min-width: 185px;
+  align-items: center;
+}
+
+.table-actions select {
+  min-height: 32px;
+  border-radius: 8px;
+  padding: 0.32rem 0.48rem;
+  background: #fbfaf8;
+  font-size: 0.78rem;
 }
 
 .table-actions button {
-  padding: 0.3rem 0.38rem;
+  min-height: 32px;
+  padding: 0.32rem 0.52rem;
 }
 
 .empty-state {
@@ -2210,8 +2220,8 @@ label {
 }
 
 .table-actions {
-  min-width: 200px;
-  gap: 0.32rem;
+  min-width: 190px;
+  gap: 0.38rem;
 }
 
 .table-actions button,

@@ -1087,10 +1087,13 @@ function renderTasks() {
       <td>${task.due ? escapeHTML(task.due) : "No date"}</td>
       <td>
         <div class="table-actions">
-          <button data-action="progress" data-id="${task.id}" type="button">Start</button>
-          <button data-action="review" data-id="${task.id}" type="button">Review</button>
-          <button data-action="complete" data-id="${task.id}" type="button">Done</button>
-          <button data-action="delete" data-id="${task.id}" class="quiet" type="button">Delete</button>
+          <select data-task-action-select="${escapeHTML(task.id)}" aria-label="Action for ${escapeHTML(task.title)}">
+            <option value="progress">Start</option>
+            <option value="review">Review</option>
+            <option value="complete">Done</option>
+            <option value="delete">Delete</option>
+          </select>
+          <button data-task-action-run="${escapeHTML(task.id)}" type="button">Apply</button>
         </div>
       </td>
     </tr>
@@ -3087,12 +3090,19 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelectorAll("[data-task-list]").forEach((taskList) => taskList.addEventListener("click", (event) => {
     const button = event.target.closest("button");
     if (!button) return;
-    const task = state.tasks.find((item) => item.id === button.dataset.id);
+    let action = button.dataset.action;
+    let taskId = button.dataset.id;
+    if (button.dataset.taskActionRun) {
+      taskId = button.dataset.taskActionRun;
+      const select = taskList.querySelector(`select[data-task-action-select="${CSS.escape(taskId)}"]`);
+      action = select?.value;
+    }
+    const task = state.tasks.find((item) => item.id === taskId);
     if (!task) return;
-    if (button.dataset.action === "progress") task.status = "In Progress";
-    if (button.dataset.action === "review") task.status = "Needs Review";
-    if (button.dataset.action === "complete") task.status = "Completed";
-    if (button.dataset.action === "delete") state.tasks = state.tasks.filter((item) => item.id !== task.id);
+    if (action === "progress") task.status = "In Progress";
+    if (action === "review") task.status = "Needs Review";
+    if (action === "complete") task.status = "Completed";
+    if (action === "delete") state.tasks = state.tasks.filter((item) => item.id !== task.id);
     saveState();
     renderAll();
   }));
