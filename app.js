@@ -1985,9 +1985,16 @@ function renderSocialPostSummary() {
 function renderSocialPostFilters() {
   const filters = document.querySelector("#socialPostFilters");
   if (!filters) return;
-  filters.innerHTML = socialPostFilters.map((filter) => `
-    <button class="filter-chip ${filter === activeSocialPostFilter ? "active" : ""}" data-social-filter="${escapeHTML(filter)}" type="button">${escapeHTML(filter)}</button>
-  `).join("");
+  filters.innerHTML = `
+    <label class="filter-select-field">
+      View
+      <select id="socialPostFilterSelect" aria-label="Filter listing social posts">
+        ${socialPostFilters.map((filter) => `
+          <option value="${escapeHTML(filter)}" ${filter === activeSocialPostFilter ? "selected" : ""}>${escapeHTML(filter)}</option>
+        `).join("")}
+      </select>
+    </label>
+  `;
 }
 
 function socialField(label, value, link = false) {
@@ -2083,9 +2090,27 @@ function renderSocialPostCard(post) {
   const listingBranding = getListingBranding(post.price);
   const logoType = post.logoType || listingBranding.logoType;
   const warnings = getAgentWarnings(post);
-  const workflowButtons = socialWorkflowStatuses.map((workflow) => `
-    <button class="quiet ${workflow === status ? "active-action" : ""}" data-social-workflow="${escapeHTML(workflow)}" data-id="${escapeHTML(post.id)}" type="button">${escapeHTML(workflow)}</button>
+  const workflowOptions = socialWorkflowStatuses.map((workflow) => `
+    <option value="${escapeHTML(workflow)}" ${workflow === status ? "selected" : ""}>${escapeHTML(workflow)}</option>
   `).join("");
+  const quickActions = [
+    ["save-details", "Save Details"],
+    ["mark-needs-design", "Mark Needs Design"],
+    ["mark-design-done", "Mark Design Done"],
+    ["mark-needs-photos", "Mark Needs Photos"],
+    ["mark-photos-selected", "Mark Photos Selected"],
+    ["mark-photo-prep-ready", "Mark Photo Prep Ready"],
+    ["generate-caption", "Generate Caption"],
+    ["mark-caption-ready", "Mark Caption Ready"],
+    ["copy-caption", "Copy Caption"],
+    ["open-mls", "Open MLS Link"],
+    ["graphics-link", "Add Graphics Link"],
+    ["ig-link", "Save IG Post Link"],
+    ["whatsapp", "Prepare WhatsApp Handoff"],
+    ["mark-ready-whatsapp", "Mark Ready To Send To WhatsApp"],
+    ["mark-posted", "Mark Posted"]
+  ];
+  const quickActionOptions = quickActions.map(([value, label]) => `<option value="${value}">${label}</option>`).join("");
 
   return `
     <article class="social-post-card status-${socialStatusClass(status)}">
@@ -2149,27 +2174,20 @@ function renderSocialPostCard(post) {
 
       <div class="social-action-group">
         <span>Workflow</span>
-        <div class="button-row">${workflowButtons}</div>
+        <div class="social-dropdown-action">
+          <select data-social-workflow-select="${escapeHTML(post.id)}" aria-label="Workflow for ${escapeHTML(post.propertyAddress || post.id)}">
+            ${workflowOptions}
+          </select>
+        </div>
       </div>
 
       <div class="social-action-group">
         <span>Quick Actions</span>
-        <div class="button-row">
-          <button data-social-action="save-details" data-id="${escapeHTML(post.id)}" type="button">Save Details</button>
-          <button class="quiet" data-social-action="mark-needs-design" data-id="${escapeHTML(post.id)}" type="button">Mark Needs Design</button>
-          <button class="quiet" data-social-action="mark-design-done" data-id="${escapeHTML(post.id)}" type="button">Mark Design Done</button>
-          <button class="quiet" data-social-action="mark-needs-photos" data-id="${escapeHTML(post.id)}" type="button">Mark Needs Photos</button>
-          <button class="quiet" data-social-action="mark-photos-selected" data-id="${escapeHTML(post.id)}" type="button">Mark Photos Selected</button>
-          <button class="quiet" data-social-action="mark-photo-prep-ready" data-id="${escapeHTML(post.id)}" type="button">Mark Photo Prep Ready</button>
-          <button data-social-action="generate-caption" data-id="${escapeHTML(post.id)}" type="button">Generate Caption</button>
-          <button class="quiet" data-social-action="mark-caption-ready" data-id="${escapeHTML(post.id)}" type="button">Mark Caption Ready</button>
-          <button class="quiet" data-social-action="copy-caption" data-id="${escapeHTML(post.id)}" type="button">Copy Caption</button>
-          <button class="quiet" data-social-action="open-mls" data-id="${escapeHTML(post.id)}" type="button">Open MLS Link</button>
-          <button class="quiet" data-social-action="graphics-link" data-id="${escapeHTML(post.id)}" type="button">Add Graphics Link</button>
-          <button class="quiet" data-social-action="ig-link" data-id="${escapeHTML(post.id)}" type="button">Save IG Post Link</button>
-          <button class="quiet" data-social-action="whatsapp" data-id="${escapeHTML(post.id)}" type="button">Prepare WhatsApp Handoff</button>
-          <button class="quiet" data-social-action="mark-ready-whatsapp" data-id="${escapeHTML(post.id)}" type="button">Mark Ready To Send To WhatsApp</button>
-          <button data-social-action="mark-posted" data-id="${escapeHTML(post.id)}" type="button">Mark Posted</button>
+        <div class="social-dropdown-action">
+          <select data-social-action-select="${escapeHTML(post.id)}" aria-label="Quick action for ${escapeHTML(post.propertyAddress || post.id)}">
+            ${quickActionOptions}
+          </select>
+          <button data-social-action-run="${escapeHTML(post.id)}" type="button">Run Action</button>
         </div>
       </div>
     </article>
@@ -3389,10 +3407,10 @@ document.addEventListener("DOMContentLoaded", () => {
     event.preventDefault();
     createLocalSocialPostFromForm();
   });
-  document.querySelector("#socialPostFilters")?.addEventListener("click", (event) => {
-    const button = event.target.closest("button[data-social-filter]");
-    if (!button) return;
-    activeSocialPostFilter = button.dataset.socialFilter;
+  document.querySelector("#socialPostFilters")?.addEventListener("change", (event) => {
+    const select = event.target.closest("#socialPostFilterSelect");
+    if (!select) return;
+    activeSocialPostFilter = select.value;
     renderSocialPosts();
   });
 
@@ -3400,6 +3418,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const check = event.target.closest("input[data-social-check]");
     if (check) {
       updateSocialPost(check.dataset.id, { [check.dataset.socialCheck]: check.checked ? "YES" : "NO" });
+      return;
+    }
+
+    const workflowSelect = event.target.closest("select[data-social-workflow-select]");
+    if (workflowSelect) {
+      const statusWorkflow = workflowSelect.value;
+      const patch = { statusWorkflow };
+      if (statusWorkflow === "Duplicate or Cancelled") patch.duplicateValidation = "Marked duplicate or cancelled manually";
+      updateSocialPost(workflowSelect.dataset.socialWorkflowSelect, patch);
+      showToast(`Workflow moved to ${statusWorkflow}.`);
       return;
     }
 
@@ -3421,6 +3449,15 @@ document.addEventListener("DOMContentLoaded", () => {
       if (statusWorkflow === "Duplicate or Cancelled") patch.duplicateValidation = "Marked duplicate or cancelled manually";
       updateSocialPost(workflowButton.dataset.id, patch);
       showToast(`Workflow moved to ${statusWorkflow}.`);
+      return;
+    }
+
+    const actionRunButton = event.target.closest("button[data-social-action-run]");
+    if (actionRunButton) {
+      const id = actionRunButton.dataset.socialActionRun;
+      const select = document.querySelector(`select[data-social-action-select="${CSS.escape(id)}"]`);
+      if (!select?.value) return;
+      handleSocialPostAction(select.value, getSocialPostById(id));
       return;
     }
 

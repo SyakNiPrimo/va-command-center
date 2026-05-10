@@ -414,13 +414,18 @@
             <h3>Listing Social Posts Tracker</h3>
             <p class="section-note">Active listing post tasks from Gmail and Google Sheets will appear here. Posting to Instagram stays manual.</p>
           </div>
-          <div class="button-row">
+          <div class="tracker-toolbar">
             <button id="syncListingEmailsBtn" type="button">Sync Listing Emails</button>
-            <button id="dryRunListingEmailsBtn" type="button" class="quiet">Test Email Sync</button>
             <button id="syncSocialPostsBtn" type="button">Sync Social Posts</button>
-            <button id="loadSampleSocialPostsBtn" type="button" class="quiet">Load Sample Social Posts</button>
-            <button id="clearSampleSocialPostsBtn" type="button" class="quiet">Clear Samples</button>
-            <button id="addLocalSocialPostBtn" type="button" class="quiet">Add Local Task</button>
+            <details class="toolbar-menu">
+              <summary>More Actions</summary>
+              <div class="toolbar-menu-panel">
+                <button id="dryRunListingEmailsBtn" type="button" class="quiet">Test Email Sync</button>
+                <button id="loadSampleSocialPostsBtn" type="button" class="quiet">Load Sample Social Posts</button>
+                <button id="clearSampleSocialPostsBtn" type="button" class="quiet">Clear Samples</button>
+                <button id="addLocalSocialPostBtn" type="button" class="quiet">Add Local Task</button>
+              </div>
+            </details>
           </div>
         </div>
 
