@@ -343,6 +343,8 @@ const syncSnapshot = {
 
 const seedTasks = [
   {
+    key: "morning-meeting-reminder",
+    recurring: "daily",
     title: "Send the correct morning meeting reminder",
     category: "Daily Team Communication",
     status: "Pending",
@@ -351,6 +353,8 @@ const seedTasks = [
     notes: "Dashboard automatically chooses Daily Team Meeting or Tuesday Bowers Zoom."
   },
   {
+    key: "read-ai-zoom-link",
+    recurring: "daily",
     title: "Paste morning Zoom link into Read.ai",
     category: "Meeting and Recording",
     status: "Pending",
@@ -510,6 +514,37 @@ function loadState() {
 
 function saveState() {
   localStorage.setItem(storeKey, JSON.stringify(state));
+}
+
+function markTaskCompletedByKey(key, completedAt = new Date().toISOString()) {
+  const task = state.tasks.find((item) => item.key === key && item.due === todayArizonaISO());
+  if (!task) return false;
+  task.status = "Completed";
+  task.completedAt = completedAt;
+  task.completedDate = todayArizonaISO();
+  return true;
+}
+
+function ensureDailyTask(seedTask) {
+  const today = todayArizonaISO();
+  const existing = state.tasks.find((task) => task.key === seedTask.key && task.due === today);
+  if (existing) {
+    existing.recurring = "daily";
+    if (!existing.completedAt && existing.status !== "Completed") existing.completedAt = "";
+    return existing;
+  }
+  const staleSameKey = state.tasks.find((task) => task.key === seedTask.key && task.due !== today && task.status !== "Completed");
+  if (staleSameKey) staleSameKey.status = "Completed";
+  const task = {
+    ...seedTask,
+    id: crypto.randomUUID ? crypto.randomUUID() : `task-${seedTask.key}-${Date.now()}`,
+    due: today,
+    status: "Pending",
+    completedAt: "",
+    completedDate: ""
+  };
+  state.tasks.unshift(task);
+  return task;
 }
 
 function getMeetingInfo(date = new Date()) {
@@ -715,23 +750,10 @@ function setDailyState() {
   if (!state.login) state.login = { enabled: true, currentUser: "", lastLoginAt: "", lastLogoutAt: "", sessionType: "", provider: "", supabaseUserId: "" };
   if (!state.supabase) state.supabase = { lastSyncAt: "", lastDirection: "", lastStatus: "Not checked" };
   state.tasks = state.tasks.filter((task) => task.category !== "Follow Up Boss");
-  const readAiTaskExists = state.tasks.some((task) => task.title === "Paste morning Zoom link into Read.ai");
-  if (!readAiTaskExists) {
-    state.tasks.unshift({
-      id: crypto.randomUUID ? crypto.randomUUID() : `task-read-ai-${Date.now()}`,
-      title: "Paste morning Zoom link into Read.ai",
-      category: "Meeting and Recording",
-      status: "Pending",
-      priority: "High",
-      due: todayISO(),
-      notes: "Use Zoom link: https://us06web.zoom.us/j/7251527919"
-    });
-  }
   if (state.dailyState.date !== todayArizonaISO()) {
     state.dailyState = { date: todayArizonaISO(), meetingSent: false, whatsappSent: false };
-    saveState();
-    return;
   }
+  seedTasks.filter((task) => task.recurring === "daily").forEach(ensureDailyTask);
   if (typeof state.dailyState.whatsappSent !== "boolean") {
     state.dailyState.whatsappSent = false;
     saveState();
@@ -1181,21 +1203,77 @@ function renderTasks() {
   const categoryFilter = document.querySelector("#categoryFilter").value;
   const statusFilter = document.querySelector("#statusFilter").value;
   const taskLists = document.querySelectorAll("[data-task-list]");
+  const completedLists = document.querySelectorAll("[data-completed-today-list]");
 
   const filtered = state.tasks.filter((task) => {
     const categoryMatch = categoryFilter === "All" || task.category === categoryFilter;
     const statusMatch = statusFilter === "All" || task.status === statusFilter;
-    return categoryMatch && statusMatch;
+    return task.status !== "Completed" && categoryMatch && statusMatch;
   });
 
   if (!filtered.length) {
     taskLists.forEach((taskList) => {
-      taskList.innerHTML = `<div class="empty-state">No tasks match these filters.</div>`;
+      taskList.innerHTML = `<div class="empty-state">No active tasks match these filters.</div>`;
+    });
+  } else {
+    const rows = filtered.map((task) => `
+      <tr>
+        <td>
+          <strong>${escapeHTML(task.title)}</strong>
+          <span>${escapeHTML(task.notes || "No notes added.")}</span>
+        </td>
+        <td><span class="chip">${escapeHTML(task.category)}</span></td>
+        <td><span class="status-pill">${escapeHTML(task.status)}</span></td>
+        <td><span class="priority-pill priority-${escapeHTML(task.priority)}">${escapeHTML(task.priority)}</span></td>
+        <td>${task.due ? escapeHTML(task.due) : "No date"}</td>
+        <td>
+          <div class="table-actions">
+            <select data-task-action-select="${escapeHTML(task.id)}" aria-label="Action for ${escapeHTML(task.title)}">
+              <option value="progress">Start</option>
+              <option value="review">Review</option>
+              <option value="complete">Done</option>
+              <option value="delete">Delete</option>
+            </select>
+            <button data-task-action-run="${escapeHTML(task.id)}" type="button">Apply</button>
+          </div>
+        </td>
+      </tr>
+    `).join("");
+
+    const table = `
+      <table class="work-table">
+        <thead>
+          <tr>
+            <th>Task</th>
+            <th>Category</th>
+            <th>Status</th>
+            <th>Priority</th>
+            <th>Due</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+    taskLists.forEach((taskList) => {
+      taskList.innerHTML = table;
+    });
+  }
+
+  const completedToday = state.tasks.filter((task) => {
+    if (task.status !== "Completed") return false;
+    const completedDate = task.completedDate || (task.completedAt ? task.completedAt.slice(0, 10) : task.due);
+    return completedDate === todayArizonaISO() || task.due === todayArizonaISO();
+  });
+
+  if (!completedToday.length) {
+    completedLists.forEach((list) => {
+      list.innerHTML = `<div class="empty-state">No completed tasks for today yet.</div>`;
     });
     return;
   }
 
-  const rows = filtered.map((task) => `
+  const completedRows = completedToday.map((task) => `
     <tr>
       <td>
         <strong>${escapeHTML(task.title)}</strong>
@@ -1204,22 +1282,14 @@ function renderTasks() {
       <td><span class="chip">${escapeHTML(task.category)}</span></td>
       <td><span class="status-pill">${escapeHTML(task.status)}</span></td>
       <td><span class="priority-pill priority-${escapeHTML(task.priority)}">${escapeHTML(task.priority)}</span></td>
-      <td>${task.due ? escapeHTML(task.due) : "No date"}</td>
+      <td>${task.completedAt ? escapeHTML(formatDateTime(task.completedAt)) : escapeHTML(task.due || todayArizonaISO())}</td>
       <td>
-        <div class="table-actions">
-          <select data-task-action-select="${escapeHTML(task.id)}" aria-label="Action for ${escapeHTML(task.title)}">
-            <option value="progress">Start</option>
-            <option value="review">Review</option>
-            <option value="complete">Done</option>
-            <option value="delete">Delete</option>
-          </select>
-          <button data-task-action-run="${escapeHTML(task.id)}" type="button">Apply</button>
-        </div>
+        <span class="small-muted">Completed today</span>
       </td>
     </tr>
   `).join("");
 
-  const table = `
+  const completedTable = `
     <table class="work-table">
       <thead>
         <tr>
@@ -1227,15 +1297,15 @@ function renderTasks() {
           <th>Category</th>
           <th>Status</th>
           <th>Priority</th>
-          <th>Due</th>
-          <th>Actions</th>
+          <th>Completed</th>
+          <th>Note</th>
         </tr>
       </thead>
-      <tbody>${rows}</tbody>
+      <tbody>${completedRows}</tbody>
     </table>
   `;
-  taskLists.forEach((taskList) => {
-    taskList.innerHTML = table;
+  completedLists.forEach((list) => {
+    list.innerHTML = completedTable;
   });
 }
 
@@ -3335,21 +3405,29 @@ document.addEventListener("DOMContentLoaded", () => {
   if (markMeetingSentButton) {
     markMeetingSentButton.addEventListener("click", () => {
       state.dailyState = { ...state.dailyState, date: todayArizonaISO(), meetingSent: true };
+      markTaskCompletedByKey("morning-meeting-reminder");
       saveState();
-      renderMeeting();
+      renderAll();
       showToast("Meeting reminder marked sent for today.");
     });
   }
 
   document.querySelector("#markWhatsappSent").addEventListener("click", () => {
-    state.dailyState = { ...state.dailyState, date: todayArizonaISO(), whatsappSent: true };
+    state.dailyState = { ...state.dailyState, date: todayArizonaISO(), meetingSent: true, whatsappSent: true };
+    markTaskCompletedByKey("morning-meeting-reminder");
     saveState();
-    renderMeeting();
+    renderAll();
     showToast("WhatsApp reminder marked sent for today.");
   });
 
   document.querySelector("#resetDailyBtn").addEventListener("click", () => {
     state.dailyState = { date: todayArizonaISO(), meetingSent: false, whatsappSent: false };
+    const meetingTask = state.tasks.find((task) => task.key === "morning-meeting-reminder" && task.due === todayArizonaISO());
+    if (meetingTask) {
+      meetingTask.status = "Pending";
+      meetingTask.completedAt = "";
+      meetingTask.completedDate = "";
+    }
     saveState();
     renderAll();
     showToast("Daily state reset.");
@@ -3421,7 +3499,11 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!task) return;
     if (action === "progress") task.status = "In Progress";
     if (action === "review") task.status = "Needs Review";
-    if (action === "complete") task.status = "Completed";
+    if (action === "complete") {
+      task.status = "Completed";
+      task.completedAt = new Date().toISOString();
+      task.completedDate = todayArizonaISO();
+    }
     if (action === "delete") state.tasks = state.tasks.filter((item) => item.id !== task.id);
     saveState();
     renderAll();

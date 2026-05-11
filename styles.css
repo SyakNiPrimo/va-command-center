@@ -484,6 +484,14 @@ main,
   text-transform: uppercase;
 }
 
+.completed-head {
+  margin-top: 18px;
+}
+
+.completed-table-wrap {
+  background: rgba(255, 255, 255, 0.72);
+}
+
 .focus-grid {
   display: grid;
   grid-template-columns: minmax(360px, 0.9fr) minmax(360px, 1.1fr);
