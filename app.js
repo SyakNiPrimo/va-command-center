@@ -123,6 +123,7 @@ const captionServerUrl = "http://127.0.0.1:8791/generate-caption";
 const triviaServerUrl = "http://127.0.0.1:8791/generate-trivia";
 const supabaseCaptionFunctionUrl = `${supabaseConfig.projectUrl}/functions/v1/generate-caption`;
 const supabaseTriviaFunctionUrl = `${supabaseConfig.projectUrl}/functions/v1/generate-trivia`;
+const listingCaptionGptUrl = "https://chatgpt.com/g/g-6a0213727ae8819182e88a879a7cfd84-listing-caption-gpt";
 const agentHeadshotsFolderUrl = "https://drive.google.com/drive/folders/1upm9VVosOnJTwSaa36HWhnfeVxWy5XBB?usp=sharing";
 const agentHeadshotFiles = [
   "Alijah.jpeg",
@@ -2477,6 +2478,8 @@ function renderPhotoPrepForPost(post) {
 function getSocialQuickActionOptions() {
   return [
     ["save-details", "Save Details"],
+    ["open-listing-gpt", "Open Listing GPT"],
+    ["copy-listing-gpt-prompt", "Copy GPT Prompt"],
     ["generate-caption", "Generate Caption"],
     ["copy-caption", "Copy Caption"],
     ["open-mls", "Open MLS Link"],
@@ -2730,6 +2733,102 @@ function buildCaptionPayload(post) {
   };
 }
 
+function buildListingGptPrompt(post) {
+  const payload = buildCaptionPayload(post);
+  const photoSlots = socialPhotoSlots.join(", ");
+  const listingBranding = getListingBranding(post.price);
+  const selectedHeadshot = post.agentHeadshotLink || getHeadshotLinkFromSelection(post.agentHeadshotFile);
+  const processedPhotoCount = Object.keys(post.processedPhotos || {}).length;
+  return `You are helping with The Jakobov Group listing social media workflow.
+
+First, capture and verify the listing data below. If a required field is missing, clearly flag it before writing final copy.
+
+Required data to capture:
+- Listing status
+- Full property address
+- Agent name
+- Agent Instagram handle
+- MLS number
+- MLS link
+- Price or sold price
+- Bedrooms
+- Bathrooms
+- Approximate square feet
+- MLS description
+- Logo type
+- Agent headshot status
+- Canva video link or graphics link
+- Six MLS photo slots
+
+Create:
+1. A short missing-data checklist.
+2. A polished Instagram listing caption.
+3. Instagram photo prep instructions for these 6 MLS photos: ${photoSlots}.
+4. A WhatsApp handoff summary for manual phone posting.
+
+Photo prep rules:
+- 1080 x 1350 Instagram portrait output.
+- Keep the main property photo sharp and unchanged.
+- Add blurred background fill only.
+- Do not alter house details.
+- Export each image separately as JPG.
+
+Caption rules:
+- Status in ALL CAPS.
+- Full property address on the first line.
+- No hyphens or em dashes.
+- Maximum of 5 hashtags.
+- Always include #arizona #RealEstate #TheJakobovGroup.
+- Include "Exclusively listed by" with only the agent Instagram handle and @thejakobovgroup.
+- Use a polished Arizona luxury real estate tone.
+
+Listing data:
+${JSON.stringify({
+  ...payload,
+  statusWorkflow: post.statusWorkflow || "New",
+  duplicateValidation: post.duplicateValidation || "",
+  logoType: post.logoType || listingBranding.logoType,
+  brandingType: listingBranding.label,
+  agentHeadshotLink: selectedHeadshot || "",
+  agentHeadshotConfirmed: post.agentHeadshotConfirmed || "NO",
+  agentNameConfirmed: post.agentNameConfirmed || "NO",
+  agentPhoneConfirmed: post.agentPhoneConfirmed || "NO",
+  agentEmailConfirmed: post.agentEmailConfirmed || "NO",
+  agentInstagramHandleConfirmed: post.agentInstagramHandleConfirmed || "NO",
+  canvaVideoLink: post.canvaVideoLink || "",
+  graphicsLink: post.graphicsLink || "",
+  processedPhotoCount,
+  photoSlots: socialPhotoSlots.map((slot) => ({
+    slot,
+    processed: Boolean(post.processedPhotos?.[slot])
+  }))
+}, null, 2)}
+
+Return format:
+Missing Data:
+- ...
+
+Caption:
+...
+
+Photo Prep:
+- Living Room:
+- Kitchen:
+- Dining:
+- Bedroom:
+- Bathroom:
+- Exterior Yard or Best Feature:
+
+WhatsApp Handoff:
+...`;
+}
+
+function openListingCaptionGpt(post) {
+  copyText(buildListingGptPrompt(post));
+  window.open(listingCaptionGptUrl, "_blank", "noreferrer");
+  showToast("Listing GPT prompt copied. Paste it into the GPT.");
+}
+
 async function generateCaptionWithServer(post) {
   const payload = buildCaptionPayload(post);
   if (!payload.agentInstagramHandle) showToast("Agent handle missing. Add before finalizing caption.");
@@ -2841,6 +2940,19 @@ function handleSocialPostAction(action, post) {
     const patch = collectSocialPostDetailsFromCard(post);
     updateSocialPost(post.id, patch);
     showToast("Listing details saved.");
+    return;
+  }
+  if (action === "open-listing-gpt") {
+    const patch = collectSocialPostDetailsFromCard(post);
+    const updated = updateSocialPost(post.id, patch, { sync: false }) || post;
+    openListingCaptionGpt(updated);
+    return;
+  }
+  if (action === "copy-listing-gpt-prompt") {
+    const patch = collectSocialPostDetailsFromCard(post);
+    const updated = updateSocialPost(post.id, patch, { sync: false }) || post;
+    copyText(buildListingGptPrompt(updated));
+    showToast("Listing GPT prompt copied.");
     return;
   }
   if (action === "generate-caption") {

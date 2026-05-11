@@ -387,6 +387,31 @@ Caption server setup:
 
 The OpenAI API key is never stored in frontend files.
 
+Custom Listing GPT:
+
+The Social tab also links to the custom **Listing Caption GPT**:
+
+`https://chatgpt.com/g/g-6a0213727ae8819182e88a879a7cfd84-listing-caption-gpt`
+
+Use it when you want ChatGPT's full GPT interface for:
+
+- Listing caption drafts.
+- Instagram photo prep instructions.
+- Reviewing the six listing photo slots before final posting.
+
+Each listing row has quick actions:
+
+- **Open Listing GPT** copies a listing-specific prompt and opens the GPT.
+- **Copy GPT Prompt** copies the same prompt without opening a new tab.
+
+The reusable GPT Builder instruction file is:
+
+- `listing-caption-gpt-instructions.md`
+
+Paste that file into the custom GPT instructions if you want the GPT itself to permanently follow the VA Command Center listing workflow.
+
+This is a manual handoff. The app does not expose API keys and does not post to Instagram.
+
 GitHub Pages ChatGPT setup:
 
 GitHub Pages cannot safely store the OpenAI API key, so the published app calls Supabase Edge Functions instead of the local caption server.
