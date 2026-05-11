@@ -9,6 +9,12 @@
  * Copy the Web app URL into app.js as gmailListingSyncUrl.
  * Test first with: WEB_APP_URL?dryRun=true
  * Backfill from April 19, 2026: WEB_APP_URL?afterDate=2026-04-19&maxResults=150&dryRun=true
+ *
+ * FIRST TIME AUTHORIZATION:
+ * 1. Paste/save this code in Apps Script.
+ * 2. Select authorizeListingEmailSync from the function dropdown.
+ * 3. Click Run and approve Gmail + Sheets permissions.
+ * 4. Deploy a new Web App version after authorization.
  */
 const SPREADSHEET_ID = "1nmdNyzfdG7V3guU7BmghtTaujAun7TDkRyK5WefTJ04";
 const SOCIAL_POSTS_SHEET = "Social Post Tasks";
@@ -32,6 +38,25 @@ function doGet(event) {
 
 function doPost(event) {
   return runEndpoint(event);
+}
+
+/**
+ * Run this manually once in Apps Script to trigger the Google permission screen.
+ * It checks Gmail labels and the Social Post Tasks sheet, then returns a short status.
+ */
+function authorizeListingEmailSync() {
+  const source = getOrCreateLabel(SOURCE_LABEL);
+  const processed = getOrCreateLabel(PROCESSED_LABEL);
+  const review = getOrCreateLabel(REVIEW_LABEL);
+  const sheet = getSheet();
+  const headers = ensureHeaders(sheet);
+  return {
+    ok: true,
+    message: "Authorization check complete. You can redeploy the Web App.",
+    labels: [source.getName(), processed.getName(), review.getName()],
+    sheet: sheet.getName(),
+    headerCount: headers.length
+  };
 }
 
 function runEndpoint(event) {

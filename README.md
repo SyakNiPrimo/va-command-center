@@ -364,11 +364,17 @@ Required columns include:
 3. Open the Task Tracker sheet.
 4. Go to Extensions > Apps Script.
 5. Paste `gmail-listing-sync-apps-script.js`.
-6. Deploy > New deployment > Web app.
-7. Set **Execute as** to `Me`.
-8. Set access to `Anyone with the link` or your Workspace users.
-9. Copy the Web app URL.
-10. Paste it into `app.js` as `gmailListingSyncUrl`.
+6. Save the project.
+7. In the function dropdown, select `authorizeListingEmailSync`.
+8. Click **Run**.
+9. Approve Gmail and Google Sheets permissions for `ben@jakobovgroup.com`.
+10. Deploy > New deployment > Web app.
+11. Set **Execute as** to `Me`.
+12. Set access to `Anyone with the link` or your Workspace users.
+13. Copy the Web app URL.
+14. Paste it into `app.js` as `gmailListingSyncUrl`.
+
+If the app says Gmail sync failed and the Apps Script response mentions permissions, run `authorizeListingEmailSync` manually, then redeploy a new Web App version.
 
 Test without changing Gmail or Sheets:
 
