@@ -257,6 +257,21 @@
         <button id="importSyncTasksBtn" type="button">Add Suggested Tasks</button>
       </div>
       <div class="sync-summary" id="syncSummary"></div>
+      <article class="panel flat supabase-settings-panel">
+        <div class="section-head">
+          <div>
+            <h3>Supabase Backup</h3>
+            <p class="section-note">Optional cloud backup for the full dashboard state. Local mode still works if Supabase is not available.</p>
+          </div>
+          <div class="button-row">
+            <button id="checkSupabaseBtn" type="button" class="quiet">Check Supabase</button>
+            <button id="pushSupabaseBtn" type="button">Push Backup</button>
+            <button id="pullSupabaseBtn" type="button" class="quiet">Pull Backup</button>
+          </div>
+        </div>
+        <div id="supabaseSettings" class="security-settings-grid"></div>
+        <p class="warning-line">The anon public key is safe for browser use, but public hosting still needs real Supabase Auth and Row Level Security rules before storing sensitive data.</p>
+      </article>
       <article class="panel flat security-settings-panel">
         <div class="section-head">
           <div>
@@ -669,6 +684,7 @@
       <span>Built for internal VA workflow tracking</span>
       <span id="footerLocalStatus">Local Mode</span>
       <span id="footerGoogleStatus">Google Sync Missing</span>
+      <span id="footerSupabaseStatus">Supabase Missing</span>
       <span id="footerCaptionStatus">Caption Server Missing</span>
     </div>
   </footer>

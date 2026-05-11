@@ -1081,7 +1081,8 @@ main,
   margin-bottom: 9px;
 }
 
-.branding-settings-panel {
+.branding-settings-panel,
+.supabase-settings-panel {
   margin-bottom: 10px;
 }
 

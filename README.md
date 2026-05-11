@@ -33,11 +33,33 @@ To replace the assets later, keep the same filenames in `assets/branding`, or up
 
 The current version uses browser `localStorage` so it works by opening the file directly. This keeps it simple and practical.
 
+Supabase is also configured as an optional cloud backup layer:
+
+- Project URL: `https://tmheeonnhqetjwslmyjf.supabase.co`
+- Table: `va_command_center_state`
+- Record ID: `ben-va-command-center`
+- Setup SQL: `supabase-schema.sql`
+
+To enable Supabase backup:
+
+1. Open Supabase.
+2. Go to **SQL Editor**.
+3. Paste and run `supabase-schema.sql`.
+4. Open VA Command Center.
+5. Go to **Settings / Integrations**.
+6. Click **Check Supabase**.
+7. Click **Push Backup** to save the current browser dashboard state.
+8. Use **Pull Backup** only when you want to replace this browser's local dashboard state with the Supabase backup.
+
+The app still works locally if Supabase is not set up or offline.
+
+Security note: the Supabase anon public key is allowed in frontend code, but broad anon write policies are not production security. Before storing sensitive data on public hosting, upgrade to Supabase Auth and user-specific Row Level Security policies.
+
 Later upgrade paths:
 
 - Google Sheets for shared task tracking.
 - Airtable or Notion for a database style workflow.
-- Firebase or Supabase for multi device sync.
+- Supabase Auth for secure multi device login and sync.
 
 ## Basic Local Login
 

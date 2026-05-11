@@ -26,6 +26,12 @@ const gmailListingSyncUrl = "";
 const brochureEmailSendUrl = "https://script.google.com/macros/s/AKfycbzQvm4KYNm9qkTeXXUzTYbuQlL-6aU5FdIGO172ovZZ-HVZfqxALkoY_vhDiguV4qHdAQ/exec";
 const brochureEmailCc = "ralph@jakobovgroup.com";
 const brochureEmailSignature = "Best,\nBen Tiaga";
+const supabaseConfig = {
+  projectUrl: "https://tmheeonnhqetjwslmyjf.supabase.co",
+  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRtaGVlb25uaHFldGp3c2xteWpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg1MDkzMDQsImV4cCI6MjA5NDA4NTMwNH0.wefhHopqdb9UobeW3LChwzW_6N3v30rxC55exofS3sU",
+  stateTable: "va_command_center_state",
+  stateRecordId: "ben-va-command-center"
+};
 const authConfig = {
   username: "ben",
   password: "change-this-password"
@@ -479,7 +485,12 @@ function loadState() {
     videoTasks: seedVideoTasks,
     paymentRequests: {},
     weeklyTriviaPosts: {},
-    triviaHistory: []
+    triviaHistory: [],
+    supabase: {
+      lastSyncAt: "",
+      lastDirection: "",
+      lastStatus: "Not checked"
+    }
   };
 }
 
@@ -613,6 +624,7 @@ function setDailyState() {
   if (!state.paymentRequests) state.paymentRequests = {};
   if (!state.weeklyTriviaPosts) state.weeklyTriviaPosts = {};
   if (!Array.isArray(state.triviaHistory)) state.triviaHistory = [];
+  if (!state.supabase) state.supabase = { lastSyncAt: "", lastDirection: "", lastStatus: "Not checked" };
   state.tasks = state.tasks.filter((task) => task.category !== "Follow Up Boss");
   const readAiTaskExists = state.tasks.some((task) => task.title === "Paste morning Zoom link into Read.ai");
   if (!readAiTaskExists) {
@@ -1229,6 +1241,109 @@ function renderSecuritySettings() {
   `).join("");
 }
 
+function getSupabaseHeaders() {
+  return {
+    apikey: supabaseConfig.anonKey,
+    Authorization: `Bearer ${supabaseConfig.anonKey}`,
+    "Content-Type": "application/json"
+  };
+}
+
+function isSupabaseConfigured() {
+  return Boolean(supabaseConfig.projectUrl && supabaseConfig.anonKey && supabaseConfig.stateTable);
+}
+
+function getSupabaseStateUrl() {
+  const baseUrl = supabaseConfig.projectUrl.replace(/\/$/, "");
+  return `${baseUrl}/rest/v1/${encodeURIComponent(supabaseConfig.stateTable)}`;
+}
+
+function updateSupabaseStatus(status, direction = state.supabase?.lastDirection || "") {
+  if (!state.supabase) state.supabase = {};
+  state.supabase.lastStatus = status;
+  state.supabase.lastDirection = direction;
+  state.supabase.lastSyncAt = new Date().toISOString();
+  saveState();
+  renderSupabaseSettings();
+  renderFooterStatus();
+}
+
+function getSupabasePayload() {
+  return {
+    schemaVersion: 1,
+    exportedAt: new Date().toISOString(),
+    app: "VA Command Center",
+    state
+  };
+}
+
+async function pushStateToSupabase() {
+  if (!isSupabaseConfigured()) throw new Error("Supabase project URL or anon key is missing.");
+  const response = await fetch(getSupabaseStateUrl(), {
+    method: "POST",
+    headers: {
+      ...getSupabaseHeaders(),
+      Prefer: "resolution=merge-duplicates,return=representation"
+    },
+    body: JSON.stringify({
+      id: supabaseConfig.stateRecordId,
+      payload: getSupabasePayload(),
+      updated_at: new Date().toISOString()
+    })
+  });
+  const result = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(result?.message || result?.hint || "Supabase push failed.");
+  updateSupabaseStatus("Local dashboard pushed to Supabase.", "Push");
+  showToast("Supabase backup updated.");
+}
+
+async function pullStateFromSupabase() {
+  if (!isSupabaseConfigured()) throw new Error("Supabase project URL or anon key is missing.");
+  const url = `${getSupabaseStateUrl()}?id=eq.${encodeURIComponent(supabaseConfig.stateRecordId)}&select=*`;
+  const response = await fetch(url, { headers: getSupabaseHeaders() });
+  const result = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(result?.message || result?.hint || "Supabase pull failed.");
+  const record = Array.isArray(result) ? result[0] : null;
+  if (!record?.payload?.state) throw new Error("No VA Command Center backup found in Supabase yet.");
+  if (!window.confirm("Pull Supabase backup and replace this browser's local dashboard data?")) return;
+  state = record.payload.state;
+  setDailyState();
+  saveState();
+  updateSupabaseStatus("Supabase backup pulled into this browser.", "Pull");
+  renderAll();
+  showToast("Supabase backup restored locally.");
+}
+
+async function checkSupabaseConnection() {
+  if (!isSupabaseConfigured()) throw new Error("Supabase project URL or anon key is missing.");
+  const url = `${getSupabaseStateUrl()}?id=eq.${encodeURIComponent(supabaseConfig.stateRecordId)}&select=id,updated_at`;
+  const response = await fetch(url, { headers: getSupabaseHeaders() });
+  const result = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(result?.message || result?.hint || "Supabase connection check failed.");
+  const found = Array.isArray(result) && result.length > 0;
+  updateSupabaseStatus(found ? `Connected. Last backup: ${formatDateTime(result[0].updated_at)}.` : "Connected. No backup record yet.", "Check");
+  showToast(found ? "Supabase connected." : "Supabase connected. Push a backup when ready.");
+}
+
+function renderSupabaseSettings() {
+  const container = document.querySelector("#supabaseSettings");
+  if (!container) return;
+  const rows = [
+    ["Project URL", supabaseConfig.projectUrl || "Missing"],
+    ["State table", supabaseConfig.stateTable],
+    ["Record ID", supabaseConfig.stateRecordId],
+    ["Anon key", supabaseConfig.anonKey ? "Configured" : "Missing"],
+    ["Last action", state.supabase?.lastDirection || "None"],
+    ["Status", state.supabase?.lastStatus || "Not checked"]
+  ];
+  container.innerHTML = rows.map(([label, value]) => `
+    <div class="security-setting-card">
+      <span>${escapeHTML(label)}</span>
+      <strong>${escapeHTML(value)}</strong>
+    </div>
+  `).join("");
+}
+
 function renderFooterStatus() {
   const year = document.querySelector("#footerYear");
   if (year) year.textContent = String(new Date().getFullYear());
@@ -1239,6 +1354,8 @@ function renderFooterStatus() {
   }
   const caption = document.querySelector("#footerCaptionStatus");
   if (caption) caption.textContent = "Caption Server Missing";
+  const supabase = document.querySelector("#footerSupabaseStatus");
+  if (supabase) supabase.textContent = isSupabaseConfigured() ? "Supabase Configured" : "Supabase Missing";
 }
 
 function createAttendanceSession(date = document.querySelector("#attendanceDate")?.value || todayArizonaISO()) {
@@ -2769,6 +2886,7 @@ function renderAll() {
   renderSocialPosts();
   renderBrandingSettings();
   renderSecuritySettings();
+  renderSupabaseSettings();
   renderFooterStatus();
   renderTriviaPost();
   renderVideoTasks();
@@ -3203,6 +3321,27 @@ document.addEventListener("DOMContentLoaded", () => {
     saveState();
     renderAll();
     showToast(`${newTasks.length} suggested tasks added.`);
+  });
+
+  document.querySelector("#checkSupabaseBtn")?.addEventListener("click", () => {
+    checkSupabaseConnection().catch((error) => {
+      updateSupabaseStatus(`Supabase check failed: ${error.message}`, "Check");
+      showToast("Supabase check failed.");
+    });
+  });
+
+  document.querySelector("#pushSupabaseBtn")?.addEventListener("click", () => {
+    pushStateToSupabase().catch((error) => {
+      updateSupabaseStatus(`Supabase push failed: ${error.message}`, "Push");
+      showToast("Supabase push failed.");
+    });
+  });
+
+  document.querySelector("#pullSupabaseBtn")?.addEventListener("click", () => {
+    pullStateFromSupabase().catch((error) => {
+      updateSupabaseStatus(`Supabase pull failed: ${error.message}`, "Pull");
+      showToast("Supabase pull failed.");
+    });
   });
 
   document.querySelector("#agentForm").addEventListener("submit", (event) => {
