@@ -226,17 +226,22 @@ main,
 .sidebar-brand {
   display: grid;
   gap: 8px;
+  justify-items: center;
   padding: 10px 8px 14px;
   margin-bottom: 8px;
   border-bottom: 1px solid rgba(200, 173, 95, 0.32);
   color: #ffffff;
+  text-align: center;
 }
 
 .sidebar-brand img {
   display: block;
-  width: 100%;
-  max-width: 168px;
+  width: min(154px, 100%);
+  max-width: 154px;
+  max-height: 92px;
   height: auto;
+  object-fit: contain;
+  object-position: center;
 }
 
 .sidebar-brand strong {
@@ -249,6 +254,7 @@ main,
   font-size: 0.74rem;
   font-weight: 900;
   letter-spacing: 0.08em;
+  line-height: 1.25;
   text-transform: uppercase;
 }
 
@@ -1953,7 +1959,7 @@ label {
 }
 
 .sidebar-brand img {
-  max-width: 148px;
+  max-width: 150px;
 }
 
 .sidebar-nav .tabs {

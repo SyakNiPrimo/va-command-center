@@ -35,7 +35,7 @@ const authSessionStorageKey = "vaCommandCenterSessionAuth";
 const brandConfig = {
   mainBrandName: "The Jakobov Group",
   appName: "VA Command Center",
-  sidebarLogo: "assets/branding/jakobov-white.svg",
+  sidebarLogo: "assets/branding/Transparent (2).png",
   lightBackgroundLogo: "assets/branding/jakobov-dark.svg",
   luxuryLogo: "assets/branding/exp-luxury.svg",
   regularListingLogo: "assets/branding/exp-realty.svg",
