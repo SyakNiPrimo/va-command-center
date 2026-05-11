@@ -408,6 +408,13 @@
         </div>
       </div>
 
+      <nav class="listing-subnav" aria-label="Listings menu">
+        <button data-listing-jump="pendingListingPostsPanel" type="button">Pending Posts</button>
+        <button data-listing-jump="socialPostTrackerList" type="button" class="quiet">Workflow Tracker</button>
+        <button data-listing-jump="captionForm" type="button" class="quiet">Caption Tools</button>
+        <button data-listing-jump="photoPrepGrid" type="button" class="quiet">Photo Prep</button>
+      </nav>
+
       <article class="panel flat social-tracker-panel">
         <div class="section-head">
           <div>
@@ -421,6 +428,7 @@
               <summary>More Actions</summary>
               <div class="toolbar-menu-panel">
                 <button id="dryRunListingEmailsBtn" type="button" class="quiet">Test Email Sync</button>
+                <button id="backfillListingEmailsBtn" type="button" class="quiet">Backfill Since Apr 19</button>
                 <button id="loadSampleSocialPostsBtn" type="button" class="quiet">Load Sample Social Posts</button>
                 <button id="clearSampleSocialPostsBtn" type="button" class="quiet">Clear Samples</button>
                 <button id="addLocalSocialPostBtn" type="button" class="quiet">Add Local Task</button>
@@ -430,6 +438,17 @@
         </div>
 
         <div id="socialPostSummary" class="social-summary"></div>
+
+        <section id="pendingListingPostsPanel" class="pending-posts-panel" aria-label="Pending listing posts">
+          <div class="mini-section-head">
+            <div>
+              <h3>Pending Posts From Listing Emails</h3>
+              <p class="section-note">Listing updates that still need design, caption, WhatsApp handoff, or manual Instagram posting.</p>
+            </div>
+            <span id="pendingListingPostsCount" class="status-pill">0 Pending</span>
+          </div>
+          <div id="pendingListingPostsList" class="pending-posts-list"></div>
+        </section>
 
         <div class="tracker-tools">
           <div id="socialPostFilters" class="filter-chips" aria-label="Social post filters"></div>

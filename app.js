@@ -1690,13 +1690,18 @@ function summarizeListingEmailSync(result, dryRun = false) {
 
 async function syncListingEmails(options = {}) {
   const dryRun = Boolean(options.dryRun);
+  const afterDate = options.afterDate || "";
+  const maxResults = options.maxResults || "";
   if (!gmailListingSyncUrl) {
     setSocialPostSyncStatus("Gmail listing sync URL missing. Add the Gmail Listing Sync Apps Script URL to app.js.");
     showToast("Gmail listing sync URL is not set yet.");
     return;
   }
 
-  const url = `${gmailListingSyncUrl}${gmailListingSyncUrl.includes("?") ? "&" : "?"}dryRun=${dryRun ? "true" : "false"}`;
+  const params = new URLSearchParams({ dryRun: dryRun ? "true" : "false" });
+  if (afterDate) params.set("afterDate", afterDate);
+  if (maxResults) params.set("maxResults", String(maxResults));
+  const url = `${gmailListingSyncUrl}${gmailListingSyncUrl.includes("?") ? "&" : "?"}${params.toString()}`;
   setSocialPostSyncStatus(dryRun ? "Testing Gmail listing sync without changing Gmail or Sheets..." : "Syncing Listing Updates emails...");
   const response = await fetch(url);
   const result = await response.json();
@@ -1966,6 +1971,51 @@ function getVisibleSocialPosts() {
   });
 }
 
+function isDuplicateSocialPost(post) {
+  const status = String(post.statusWorkflow || "");
+  return String(post.duplicateValidation || "").toLowerCase().includes("duplicate") || status === "Duplicate or Cancelled";
+}
+
+function getPendingListingPosts() {
+  return (state.socialPosts || []).filter((post) => {
+    const status = String(post.statusWorkflow || "New");
+    return !isSocialPostCompleted(post) && !isDuplicateSocialPost(post) && !["Canceled", "Posted", "Completed"].includes(status);
+  });
+}
+
+function renderPendingListingPosts() {
+  const count = document.querySelector("#pendingListingPostsCount");
+  const list = document.querySelector("#pendingListingPostsList");
+  if (!list) return;
+  const pendingPosts = getPendingListingPosts();
+  if (count) count.textContent = `${pendingPosts.length} Pending`;
+  if (!pendingPosts.length) {
+    list.innerHTML = `<div class="empty-state">No pending listing posts right now.</div>`;
+    return;
+  }
+  list.innerHTML = pendingPosts.map((post) => {
+    const branding = getListingBranding(post.price);
+    return `
+      <article class="pending-post-row">
+        <div>
+          <strong>${escapeHTML(post.propertyAddress || "Address needed")}</strong>
+          <span>${escapeHTML(post.listingType || "Listing")} • ${escapeHTML(post.agentName || "Agent needed")} • MLS ${escapeHTML(post.mlsNumber || "missing")}</span>
+        </div>
+        <div class="pending-post-meta">
+          <span class="status-pill">${escapeHTML(post.statusWorkflow || "New")}</span>
+          <span class="brand-pill ${escapeHTML(branding.className)}">${escapeHTML(branding.label)}</span>
+          <span>${escapeHTML(post.dateReceived || "No date")}</span>
+        </div>
+        <div class="pending-post-actions">
+          <button data-pending-action="caption" data-id="${escapeHTML(post.id)}" type="button">Caption</button>
+          <button data-pending-action="whatsapp" data-id="${escapeHTML(post.id)}" type="button" class="quiet">WhatsApp</button>
+          <button data-pending-action="posted" data-id="${escapeHTML(post.id)}" type="button" class="quiet">Mark Posted</button>
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
 function renderSocialPostSummary() {
   const summary = document.querySelector("#socialPostSummary");
   if (!summary) return;
@@ -2200,6 +2250,7 @@ function renderSocialPosts() {
   if (!Array.isArray(state.socialPosts)) state.socialPosts = [];
   if (!state.agentProfiles) state.agentProfiles = {};
   renderSocialPostSummary();
+  renderPendingListingPosts();
   renderSocialPostFilters();
   setSocialPostSyncStatus(socialPostsSyncUrl ? "Social posts sync: ready." : "Social posts sync: local only until the Apps Script URL is added.");
   const list = document.querySelector("#socialPostTrackerList");
@@ -3343,6 +3394,12 @@ document.addEventListener("DOMContentLoaded", () => {
       showToast("Gmail listing sync test failed.");
     });
   });
+  document.querySelector("#backfillListingEmailsBtn")?.addEventListener("click", () => {
+    syncListingEmails({ dryRun: false, afterDate: "2026-04-19", maxResults: 150 }).catch((error) => {
+      setSocialPostSyncStatus(`Listing email backfill failed: ${error.message}`);
+      showToast("Listing email backfill failed.");
+    });
+  });
   document.querySelector("#loadSampleSocialPostsBtn")?.addEventListener("click", loadSampleSocialPosts);
   document.querySelector("#clearSampleSocialPostsBtn")?.addEventListener("click", clearSampleSocialPosts);
 
@@ -3407,6 +3464,24 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.querySelector("#addLocalSocialPostBtn")?.addEventListener("click", openLocalSocialPostModal);
+
+  document.querySelector(".listing-subnav")?.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-listing-jump]");
+    if (!button) return;
+    document.querySelector(`#${CSS.escape(button.dataset.listingJump)}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+  });
+
+  document.querySelector("#pendingListingPostsList")?.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-pending-action]");
+    if (!button) return;
+    const post = getSocialPostById(button.dataset.id);
+    const actionMap = {
+      caption: "generate-caption",
+      whatsapp: "whatsapp",
+      posted: "mark-posted"
+    };
+    handleSocialPostAction(actionMap[button.dataset.pendingAction], post);
+  });
 
   document.querySelector("#closeSocialPostModalBtn")?.addEventListener("click", closeLocalSocialPostModal);
   document.querySelector("#cancelSocialPostModalBtn")?.addEventListener("click", closeLocalSocialPostModal);

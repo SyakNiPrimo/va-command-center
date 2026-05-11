@@ -8,6 +8,7 @@
  *
  * Copy the Web app URL into app.js as gmailListingSyncUrl.
  * Test first with: WEB_APP_URL?dryRun=true
+ * Backfill from April 19, 2026: WEB_APP_URL?afterDate=2026-04-19&maxResults=150&dryRun=true
  */
 const SPREADSHEET_ID = "1nmdNyzfdG7V3guU7BmghtTaujAun7TDkRyK5WefTJ04";
 const SOCIAL_POSTS_SHEET = "Social Post Tasks";
@@ -37,7 +38,9 @@ function runEndpoint(event) {
   let result;
   try {
     const dryRun = String(event?.parameter?.dryRun || "").toLowerCase() === "true";
-    result = syncListingEmails({ dryRun });
+    const afterDate = event?.parameter?.afterDate || "";
+    const maxResults = Number(event?.parameter?.maxResults || 50);
+    result = syncListingEmails({ dryRun, afterDate, maxResults });
   } catch (error) {
     result = { ok: false, error: error.message };
   }
@@ -46,16 +49,19 @@ function runEndpoint(event) {
 
 function syncListingEmails(options) {
   const dryRun = Boolean(options?.dryRun);
+  const afterDate = options?.afterDate || "";
+  const maxResults = Math.min(Math.max(Number(options?.maxResults || 50), 1), 250);
   const source = getOrCreateLabel(SOURCE_LABEL);
   const processed = getOrCreateLabel(PROCESSED_LABEL);
   const review = getOrCreateLabel(REVIEW_LABEL);
-  const threads = source.getThreads(0, 50);
+  const threads = getListingThreads(source, afterDate, maxResults);
   const sheet = getSheet();
   const headers = ensureHeaders(sheet);
   const existing = getExistingKeys(sheet, headers);
   const result = {
     ok: true,
     dryRun,
+    afterDate: afterDate || "",
     processedCount: 0,
     createdCount: 0,
     duplicateCount: 0,
@@ -83,16 +89,22 @@ function syncListingEmails(options) {
     const sourceKey = `EMAIL:${message.getId()}`;
 
     if (existing.has(sourceKey) || existing.has(duplicateKey)) {
+      const existingMatch = existing.get(sourceKey) || existing.get(duplicateKey);
+      const duplicateNote = `Duplicate from Gmail backfill ${formatDate(new Date())}: ${duplicateKey}`;
       result.duplicateCount += 1;
       result.duplicateItems.push({
         subject: message.getSubject(),
         messageId: message.getId(),
         duplicateKey,
+        existingRow: existingMatch?.rowNumber || "",
         address: parsed.item.propertyAddress,
         mlsNumber: parsed.item.mlsNumber,
         listingType: parsed.item.listingType
       });
       if (!dryRun) {
+        if (existingMatch?.rowNumber) {
+          markDuplicateOnExistingRow(sheet, headers, existingMatch.rowNumber, duplicateNote);
+        }
         thread.addLabel(processed);
         thread.removeLabel(source);
       }
@@ -109,7 +121,7 @@ function syncListingEmails(options) {
       "MLS Link": parsed.item.mlsLink,
       "Property Address": parsed.item.propertyAddress,
       "Price": parsed.item.price,
-      "Duplicate Validation": duplicateKey,
+      "Duplicate Validation": `Unique: ${duplicateKey}`,
       "Status (Workflow)": parsed.item.listingType === "Canceled" ? "Canceled" : "New",
       "Logo Type": getLogoType(parsed.item.price),
       "Graphics Created?": "NO",
@@ -131,8 +143,8 @@ function syncListingEmails(options) {
 
     if (!dryRun) {
       sheet.appendRow(objectToRow(headers, rowObject));
-      existing.add(sourceKey);
-      existing.add(duplicateKey);
+      existing.set(sourceKey, { rowNumber: sheet.getLastRow() });
+      existing.set(duplicateKey, { rowNumber: sheet.getLastRow() });
       thread.addLabel(processed);
       thread.removeLabel(source);
     }
@@ -148,13 +160,13 @@ function parseListingEmail(message) {
   const status = classifyStatus(text);
   if (status.review) return { ok: false, reason: status.reason };
 
-  const mlsNumber = cleanValue(matchFirst(text, [/MLS\s*#?\s*[:\-]?\s*([A-Z0-9]{5,})/i, /MLS Number\s*[:\-]?\s*([A-Z0-9]{5,})/i]));
+  const mlsNumber = cleanValue(matchFirst(text, [/MLS\s*#?\s*[:\-]?\s*([A-Z0-9]{5,})/i, /MLS Number\s*[:\-]?\s*([A-Z0-9]{5,})/i, /#\s*([0-9]{5,})/]));
   const price = cleanValue(matchFirst(text, [/\$\s*([0-9,]{4,})/, /Price\s*[:\-]?\s*\$?\s*([0-9,]+)/i]));
-  const agentName = cleanValue(matchFirst(text, [/Agent\s*(?:Name)?\s*[:\-]\s*([^\n]+)/i, /Listing Agent\s*[:\-]\s*([^\n]+)/i, /Agent\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,2})/]));
+  const agentName = cleanAgentName(subject, text);
   const propertyAddress = cleanAddress(matchFirst(text, [
     /Property Address\s*[:\-]\s*([^\n]+)/i,
     /Address\s*[:\-]\s*([^\n]+)/i,
-    /\b\d{2,6}\s+[^\n,]+(?:Road|Rd|Street|St|Drive|Dr|Avenue|Ave|Lane|Ln|Circle|Cir|Court|Ct|Way|Trail|Trl|Place|Pl|Boulevard|Blvd)[^\n]*/i
+    /\b\d{2,6}\s+[^\n,]+(?:Road|Rd|Street|St|Drive|Dr|Avenue|Ave|Lane|Ln|Circle|Cir|Court|Ct|Way|Trail|Trl|Place|Pl|Boulevard|Blvd)[^\n•#]*/i
   ]));
   const mlsLink = cleanValue(matchFirst(text, [/(https?:\/\/[^\s]+(?:flexmls|armls|mls|idx)[^\s]*)/i, /(https?:\/\/[^\s]+)/i])) || "";
 
@@ -180,12 +192,20 @@ function classifyStatus(text) {
   if (/price\s*change|price reduced|price reduction/.test(lower)) return { review: true, reason: "Price change listing update needs review." };
   if (/cancelled|canceled/.test(lower)) return { listingType: "Canceled" };
   if (/coming soon/.test(lower)) return { listingType: "Coming Soon" };
+  if (/ucb|under contract-backups|under contract backups/.test(lower)) return { listingType: "Under Contract" };
   if (/under contract/.test(lower)) return { listingType: "Under Contract" };
   if (/pending/.test(lower)) return { listingType: "Pending" };
   if (/closed|sold/.test(lower)) return { listingType: "Closed" };
   if (/new listing|just listed/.test(lower)) return { listingType: "New Listing" };
   if (/\bactive\b/.test(lower)) return { listingType: "Active" };
   return { review: true, reason: "Unknown listing status." };
+}
+
+function getListingThreads(sourceLabel, afterDate, maxResults) {
+  if (!afterDate) return sourceLabel.getThreads(0, maxResults);
+  const gmailDate = afterDate.replace(/-/g, "/");
+  const query = `from:listingupdates@flexmail.flexmls.com after:${gmailDate} ("Social Post" OR "Create Post" OR "Listing Update")`;
+  return GmailApp.search(query, 0, maxResults);
 }
 
 function buildDuplicateKey(item) {
@@ -214,21 +234,30 @@ function ensureHeaders(sheet) {
 
 function getExistingKeys(sheet, headers) {
   const values = sheet.getDataRange().getValues();
-  const keys = new Set();
+  const keys = new Map();
   const col = (name) => headers.indexOf(name);
   for (let i = 1; i < values.length; i += 1) {
     const row = values[i];
+    const rowNumber = i + 1;
     const emailCol = col("Source Email ID");
     const emailId = emailCol >= 0 ? String(row[emailCol] || "").trim() : "";
-    if (emailId) keys.add(`EMAIL:${emailId}`);
+    if (emailId) keys.set(`EMAIL:${emailId}`, { rowNumber });
     const mls = getRowValue(row, col("MLS#"));
     const type = getRowValue(row, col("Listing Type"));
     const address = getRowValue(row, col("Property Address"));
     const agent = getRowValue(row, col("Agent Name"));
-    if (mls && type) keys.add(`MLS:${normalize(mls)}|${type}`);
-    if (!mls && address && type) keys.add(`ADDR:${normalize(address)}|${type}|${normalize(agent)}`);
+    if (mls && type) keys.set(`MLS:${normalize(mls)}|${type}`, { rowNumber });
+    if (!mls && address && type) keys.set(`ADDR:${normalize(address)}|${type}|${normalize(agent)}`, { rowNumber });
   }
   return keys;
+}
+
+function markDuplicateOnExistingRow(sheet, headers, rowNumber, duplicateNote) {
+  const duplicateCol = headers.indexOf("Duplicate Validation") + 1;
+  if (duplicateCol <= 0) return;
+  const current = String(sheet.getRange(rowNumber, duplicateCol).getValue() || "").trim();
+  const next = current && current.indexOf(duplicateNote) === -1 ? `${current}; ${duplicateNote}` : duplicateNote;
+  sheet.getRange(rowNumber, duplicateCol).setValue(next);
 }
 
 function getRowValue(row, index) {
@@ -253,6 +282,12 @@ function cleanValue(value) {
 
 function cleanAddress(value) {
   return cleanValue(value).replace(/\s+/g, " ").replace(/[.,;\s]+$/, "");
+}
+
+function cleanAgentName(subject, text) {
+  const fromSubject = String(subject || "").split(/\s[-–]\s/)[0].trim();
+  if (fromSubject && !/ari'?s listing/i.test(fromSubject) && !/team listings/i.test(fromSubject)) return fromSubject;
+  return cleanValue(matchFirst(text, [/Agent\s*(?:Name)?\s*[:\-]\s*([^\n]+)/i, /Listing Agent\s*[:\-]\s*([^\n]+)/i, /([A-Z][a-z]+(?:\s+[A-Z][a-z]+){1,2})\s*[-–]\s*Social Post/i]));
 }
 
 function stripHtml(html) {

@@ -1599,9 +1599,15 @@ main,
 
 @media (max-width: 760px) {
   .tracker-tools,
+  .pending-post-row,
   .social-card-head {
     grid-template-columns: 1fr;
     display: grid;
+  }
+
+  .pending-post-meta,
+  .pending-post-actions {
+    justify-content: flex-start;
   }
 }
 .social-video-panel {
@@ -2332,6 +2338,19 @@ label {
   font-size: clamp(1.25rem, 1.8vw, 1.7rem);
 }
 
+.listing-subnav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 10px 0 12px;
+}
+
+.listing-subnav button {
+  min-height: 34px;
+  border-radius: 999px;
+  padding-inline: 0.9rem;
+}
+
 .social-tracker-panel {
   padding: 18px;
 }
@@ -2414,6 +2433,68 @@ label {
   grid-template-columns: repeat(9, minmax(92px, 1fr));
   gap: 8px;
   margin-bottom: 14px;
+}
+
+.pending-posts-panel {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 12px;
+  border: 1px solid rgba(200, 173, 95, 0.24);
+  border-radius: 14px;
+  background: #fffdf8;
+  padding: 12px;
+}
+
+.mini-section-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.mini-section-head h3 {
+  margin: 0;
+  font-size: 0.98rem;
+}
+
+.pending-posts-list {
+  display: grid;
+  gap: 8px;
+}
+
+.pending-post-row {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) max-content max-content;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid rgba(17, 17, 17, 0.06);
+  border-radius: 12px;
+  background: #ffffff;
+  padding: 10px;
+}
+
+.pending-post-row strong,
+.pending-post-row span {
+  display: block;
+}
+
+.pending-post-row span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.pending-post-meta,
+.pending-post-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.pending-post-actions button {
+  min-height: 30px;
+  padding: 0.28rem 0.5rem;
+  font-size: 0.76rem;
 }
 
 .social-summary .metric {
