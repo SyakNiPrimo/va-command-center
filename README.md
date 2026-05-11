@@ -53,7 +53,7 @@ To enable Supabase backup:
 
 The app still works locally if Supabase is not set up or offline.
 
-The Supabase backup includes login metadata such as login enabled, current username, last login time, last logout time, and session type. It does **not** store the local password. For secure cloud login, use Supabase Auth instead of frontend-stored credentials.
+The Supabase backup includes login metadata such as login enabled, current username, last login time, last logout time, auth provider, Supabase user ID, and session type. It does **not** store the local password. Real email and password authentication is handled by Supabase Auth.
 
 Security note: the Supabase anon public key is allowed in frontend code, but broad anon write policies are not production security. Before storing sensitive data on public hosting, upgrade to Supabase Auth and user-specific Row Level Security policies.
 
@@ -63,25 +63,33 @@ Later upgrade paths:
 - Airtable or Notion for a database style workflow.
 - Supabase Auth for secure multi device login and sync.
 
-## Basic Local Login
+## Supabase Authentication
 
-The dashboard now opens to a simple local login screen before showing the app.
+The dashboard now opens to a login screen before showing the app. The primary login path is Supabase Auth using email and password.
 
-Default local credentials are stored in `app.js`:
+To create the VA login:
 
-- Username: `ben`
-- Password: `change-this-password`
-
-To change them, edit the `authConfig` object in `app.js`.
+1. Open Supabase.
+2. Go to **Authentication**.
+3. Open **Users**.
+4. Click **Add user**.
+5. Add the email and password you want to use for the dashboard.
+6. Leave **Auto Confirm User** enabled if Supabase asks.
+7. Open the VA Command Center and log in with that email and password.
 
 The login session uses:
 
 - `sessionStorage` when **Remember me** is unchecked.
 - `localStorage` when **Remember me** is checked.
 
-Logout clears both local and session auth records and returns the app to the login screen.
+Logout clears the local dashboard session and also calls the Supabase logout endpoint when the user logged in through Supabase Auth.
 
-Important security note: this is only basic internal protection. Because the username and password live in frontend JavaScript, it is not secure for public hosting. Before using this as a truly public or sensitive app, upgrade to real authentication such as Supabase Auth, Firebase Auth, Auth0, or a server based login.
+The old local login remains as a fallback while setup is in progress. Default local fallback credentials are stored in `app.js`:
+
+- Username: `ben`
+- Password: `change-this-password`
+
+To disable the fallback later, change `allowLocalFallback` to `false` in the `authConfig` object in `app.js`.
 
 ## Google Sync Notes
 

@@ -33,6 +33,8 @@ const supabaseConfig = {
   stateRecordId: "ben-va-command-center"
 };
 const authConfig = {
+  mode: "supabase",
+  allowLocalFallback: true,
   username: "ben",
   password: "change-this-password"
 };
@@ -491,7 +493,9 @@ function loadState() {
       currentUser: "",
       lastLoginAt: "",
       lastLogoutAt: "",
-      sessionType: ""
+      sessionType: "",
+      provider: "",
+      supabaseUserId: ""
     },
     supabase: {
       lastSyncAt: "",
@@ -568,11 +572,17 @@ function getStoredAuthSession() {
   }
 }
 
-function setAuthSession(username, remember) {
+function setAuthSession(username, remember, details = {}) {
   const session = {
     authenticated: true,
     username,
-    loginAt: new Date().toISOString()
+    loginAt: new Date().toISOString(),
+    provider: details.provider || "Local login",
+    email: details.email || "",
+    supabaseUserId: details.supabaseUserId || "",
+    accessToken: details.accessToken || "",
+    refreshToken: details.refreshToken || "",
+    expiresAt: details.expiresAt || ""
   };
   sessionStorage.removeItem(authSessionStorageKey);
   localStorage.removeItem(authLocalStorageKey);
@@ -600,39 +610,91 @@ function applyAuthState() {
   return isAuthenticated;
 }
 
-function handleLogin(event) {
+async function handleLogin(event) {
   event.preventDefault();
   const username = document.querySelector("#loginUsername")?.value.trim() || "";
   const password = document.querySelector("#loginPassword")?.value || "";
   const remember = Boolean(document.querySelector("#rememberLogin")?.checked);
   const error = document.querySelector("#loginError");
-  if (username === authConfig.username && password === authConfig.password) {
-    setAuthSession(username, remember);
-    state.login = {
-      enabled: true,
-      currentUser: username,
-      lastLoginAt: new Date().toISOString(),
-      lastLogoutAt: state.login?.lastLogoutAt || "",
-      sessionType: remember ? "Local storage" : "Session storage"
-    };
-    saveState();
-    if (error) error.textContent = "";
-    document.querySelector("#loginForm")?.reset();
-    applyAuthState();
-    renderAll();
-    showToast("Welcome back.");
-    return;
+  const loginButton = event.submitter || document.querySelector("#loginForm button[type='submit']");
+  if (loginButton) loginButton.disabled = true;
+  if (error) error.textContent = "";
+
+  try {
+    if (authConfig.mode === "supabase") {
+      try {
+        const authResult = await signInWithSupabaseAuth(username, password);
+        const email = authResult.user?.email || username;
+        setAuthSession(email, remember, {
+          provider: "Supabase Auth",
+          email,
+          supabaseUserId: authResult.user?.id || "",
+          accessToken: authResult.access_token || "",
+          refreshToken: authResult.refresh_token || "",
+          expiresAt: authResult.expires_at ? String(authResult.expires_at) : ""
+        });
+        state.login = {
+          enabled: true,
+          currentUser: email,
+          lastLoginAt: new Date().toISOString(),
+          lastLogoutAt: state.login?.lastLogoutAt || "",
+          sessionType: remember ? "Local storage" : "Session storage",
+          provider: "Supabase Auth",
+          supabaseUserId: authResult.user?.id || ""
+        };
+        saveState();
+        document.querySelector("#loginForm")?.reset();
+        applyAuthState();
+        renderAll();
+        showToast("Welcome back.");
+        return;
+      } catch (supabaseError) {
+        if (!authConfig.allowLocalFallback || username !== authConfig.username || password !== authConfig.password) {
+          throw supabaseError;
+        }
+      }
+    }
+
+    if (username === authConfig.username && password === authConfig.password) {
+      setAuthSession(username, remember, { provider: "Local fallback" });
+      state.login = {
+        enabled: true,
+        currentUser: username,
+        lastLoginAt: new Date().toISOString(),
+        lastLogoutAt: state.login?.lastLogoutAt || "",
+        sessionType: remember ? "Local storage" : "Session storage",
+        provider: "Local fallback",
+        supabaseUserId: ""
+      };
+      saveState();
+      document.querySelector("#loginForm")?.reset();
+      applyAuthState();
+      renderAll();
+      showToast("Welcome back.");
+      return;
+    }
+
+    throw new Error("Login failed. Check the email and password.");
+  } catch (loginError) {
+    if (error) error.textContent = loginError.message || "Login failed. Check the email and password.";
+  } finally {
+    if (loginButton) loginButton.disabled = false;
   }
-  if (error) error.textContent = "Login failed. Check the username and password.";
 }
 
-function handleLogout() {
+async function handleLogout() {
+  const session = getStoredAuthSession();
+  if (session?.provider === "Supabase Auth") {
+    await signOutSupabaseAuth(session.accessToken);
+  }
   state.login = {
     enabled: true,
     currentUser: "",
     lastLoginAt: state.login?.lastLoginAt || "",
     lastLogoutAt: new Date().toISOString(),
-    sessionType: ""
+    sessionType: "",
+    provider: state.login?.provider || "",
+    supabaseUserId: state.login?.supabaseUserId || ""
   };
   saveState();
   clearAuthSession();
@@ -647,7 +709,7 @@ function setDailyState() {
   if (!state.paymentRequests) state.paymentRequests = {};
   if (!state.weeklyTriviaPosts) state.weeklyTriviaPosts = {};
   if (!Array.isArray(state.triviaHistory)) state.triviaHistory = [];
-  if (!state.login) state.login = { enabled: true, currentUser: "", lastLoginAt: "", lastLogoutAt: "", sessionType: "" };
+  if (!state.login) state.login = { enabled: true, currentUser: "", lastLoginAt: "", lastLogoutAt: "", sessionType: "", provider: "", supabaseUserId: "" };
   if (!state.supabase) state.supabase = { lastSyncAt: "", lastDirection: "", lastStatus: "Not checked" };
   state.tasks = state.tasks.filter((task) => task.category !== "Follow Up Boss");
   const readAiTaskExists = state.tasks.some((task) => task.title === "Paste morning Zoom link into Read.ai");
@@ -1254,8 +1316,11 @@ function renderSecuritySettings() {
   const session = getStoredAuthSession();
   const rows = [
     ["Login enabled", "Yes"],
+    ["Auth mode", authConfig.mode === "supabase" ? "Supabase Auth" : "Local login"],
+    ["Auth provider", session?.provider || state.login?.provider || "None"],
     ["Current user", session?.username || "Not logged in"],
     ["Session type", session?.sessionType || "None"],
+    ["Supabase user ID", session?.supabaseUserId || state.login?.supabaseUserId || "Not connected"],
     ["Last login", state.login?.lastLoginAt ? formatDateTime(state.login.lastLoginAt) : "Not stored yet"],
     ["Last logout", state.login?.lastLogoutAt ? formatDateTime(state.login.lastLogoutAt) : "Not stored yet"]
   ];
@@ -1282,6 +1347,35 @@ function isSupabaseConfigured() {
 function getSupabaseStateUrl() {
   const baseUrl = supabaseConfig.projectUrl.replace(/\/$/, "");
   return `${baseUrl}/rest/v1/${encodeURIComponent(supabaseConfig.stateTable)}`;
+}
+
+function getSupabaseAuthUrl(path) {
+  const baseUrl = supabaseConfig.projectUrl.replace(/\/$/, "");
+  return `${baseUrl}/auth/v1/${path}`;
+}
+
+async function signInWithSupabaseAuth(email, password) {
+  if (!isSupabaseConfigured()) throw new Error("Supabase is not configured.");
+  if (!email.includes("@")) throw new Error("Use your Supabase Auth email address.");
+  const response = await fetch(getSupabaseAuthUrl("token?grant_type=password"), {
+    method: "POST",
+    headers: getSupabaseHeaders(),
+    body: JSON.stringify({ email, password })
+  });
+  const result = await response.json().catch(() => null);
+  if (!response.ok) throw new Error(result?.error_description || result?.msg || result?.message || "Supabase login failed.");
+  return result;
+}
+
+async function signOutSupabaseAuth(accessToken) {
+  if (!accessToken || !isSupabaseConfigured()) return;
+  await fetch(getSupabaseAuthUrl("logout"), {
+    method: "POST",
+    headers: {
+      ...getSupabaseHeaders(),
+      Authorization: `Bearer ${accessToken}`
+    }
+  }).catch(() => {});
 }
 
 function updateSupabaseStatus(status, direction = state.supabase?.lastDirection || "") {
