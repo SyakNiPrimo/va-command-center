@@ -124,6 +124,7 @@ const triviaServerUrl = "http://127.0.0.1:8791/generate-trivia";
 const supabaseCaptionFunctionUrl = `${supabaseConfig.projectUrl}/functions/v1/generate-caption`;
 const supabaseTriviaFunctionUrl = `${supabaseConfig.projectUrl}/functions/v1/generate-trivia`;
 const listingCaptionGptUrl = "https://chatgpt.com/g/g-6a0213727ae8819182e88a879a7cfd84-listing-caption-gpt";
+const virtualTwilightGptUrl = "https://chatgpt.com/g/g-6a02531e93548191a244d8c4e3a69718-real-estate-virtual-twilight-editor";
 const agentHeadshotsFolderUrl = "https://drive.google.com/drive/folders/1upm9VVosOnJTwSaa36HWhnfeVxWy5XBB?usp=sharing";
 const agentHeadshotFiles = [
   "Alijah.jpeg",
@@ -2482,6 +2483,8 @@ function getSocialQuickActionOptions() {
     ["save-details", "Save Details"],
     ["open-listing-gpt", "Open Listing GPT"],
     ["copy-listing-gpt-prompt", "Copy GPT Prompt"],
+    ["open-twilight-gpt", "Open Twilight GPT"],
+    ["copy-twilight-gpt-prompt", "Copy Twilight Prompt"],
     ["generate-caption", "Generate Caption"],
     ["copy-caption", "Copy Caption"],
     ["open-mls", "Open MLS Link"],
@@ -2831,6 +2834,38 @@ function openListingCaptionGpt(post) {
   showToast("Listing GPT prompt copied. Paste it into the GPT.");
 }
 
+function buildVirtualTwilightPrompt(post = {}) {
+  return `Use the Real Estate Virtual Twilight Editor for this Jakobov Group listing image.
+
+Goal:
+Create a polished virtual twilight version of the exterior listing photo for marketing use.
+
+Editing rules:
+- Keep the property architecture accurate.
+- Do not change the home structure, landscaping layout, driveway, roofline, windows, doors, or lot details.
+- Create realistic twilight sky and warm exterior lighting.
+- Keep the image professional, premium, and natural.
+- Do not add unrealistic objects, people, cars, signs, or fake property features.
+- Preserve real estate compliance accuracy.
+
+Listing context:
+Property address: ${post.propertyAddress || "Paste property address"}
+Agent: ${post.agentName || "Paste agent name"}
+MLS number: ${post.mlsNumber || "Paste MLS number"}
+Listing status: ${post.listingType || "Paste listing status"}
+
+Return:
+1. A short edit checklist.
+2. A suggested final file name.
+3. A reminder to review property accuracy before posting.`;
+}
+
+function openVirtualTwilightGpt(post = {}) {
+  copyText(buildVirtualTwilightPrompt(post));
+  window.open(virtualTwilightGptUrl, "_blank", "noreferrer");
+  showToast("Virtual twilight prompt copied. Paste it into the GPT.");
+}
+
 async function generateCaptionWithServer(post) {
   const payload = buildCaptionPayload(post);
   if (!payload.agentInstagramHandle) showToast("Agent handle missing. Add before finalizing caption.");
@@ -2955,6 +2990,19 @@ function handleSocialPostAction(action, post) {
     const updated = updateSocialPost(post.id, patch, { sync: false }) || post;
     copyText(buildListingGptPrompt(updated));
     showToast("Listing GPT prompt copied.");
+    return;
+  }
+  if (action === "open-twilight-gpt") {
+    const patch = collectSocialPostDetailsFromCard(post);
+    const updated = updateSocialPost(post.id, patch, { sync: false }) || post;
+    openVirtualTwilightGpt(updated);
+    return;
+  }
+  if (action === "copy-twilight-gpt-prompt") {
+    const patch = collectSocialPostDetailsFromCard(post);
+    const updated = updateSocialPost(post.id, patch, { sync: false }) || post;
+    copyText(buildVirtualTwilightPrompt(updated));
+    showToast("Virtual twilight prompt copied.");
     return;
   }
   if (action === "generate-caption") {
@@ -4112,6 +4160,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.querySelector("#generatePhotoPrepBtn").addEventListener("click", () => {
     photoPrepSlots.forEach((slot) => generatePhotoSlot(slot));
+  });
+
+  document.querySelector("#copyTwilightPromptBtn")?.addEventListener("click", () => {
+    copyText(buildVirtualTwilightPrompt());
+    showToast("Virtual twilight prompt copied.");
   });
 
   document.querySelector("#sidebarToggle")?.addEventListener("click", () => {

@@ -184,6 +184,14 @@ Upload each photo, then generate a 1080 x 1350 JPG with the same image blurred i
 
 Photo prep is local canvas processing only. It does not use OpenAI image generation because property details should not be altered. The main property photo is scaled to fit inside the Instagram frame without cropping important details, then exported as a separate JPG download for each slot.
 
+### Virtual Twilight GPT
+
+The Photo Prep area includes a manual link to the custom **Real Estate Virtual Twilight Editor** GPT:
+
+`https://chatgpt.com/g/g-6a02531e93548191a244d8c4e3a69718-real-estate-virtual-twilight-editor`
+
+Use it only for virtual twilight exterior marketing images. The app copies a prompt that tells the GPT to keep the property architecture accurate, avoid changing real home details, and create a realistic twilight look. Listing rows also include quick actions to open this GPT or copy the twilight prompt with listing context.
+
 ## Attendance Tracking
 
 The Attendance tab tracks morning Zoom and Office attendance in a spreadsheet-style table with checkboxes per agent per selected date.
