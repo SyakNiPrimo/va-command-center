@@ -2546,6 +2546,81 @@ label {
   gap: 12px;
 }
 
+.social-post-table-wrap {
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.social-post-table {
+  min-width: 980px;
+}
+
+.social-post-table th {
+  white-space: nowrap;
+}
+
+.social-post-table td {
+  vertical-align: middle;
+}
+
+.social-post-table td:first-child {
+  min-width: 280px;
+}
+
+.social-post-table-row strong,
+.social-post-table-row span {
+  display: block;
+}
+
+.social-post-table-row span {
+  margin-top: 0.18rem;
+  color: var(--muted);
+  font-size: 0.72rem;
+}
+
+.social-post-table-row .warning-line {
+  color: #a74800;
+}
+
+.social-post-detail-row > td {
+  padding: 0 10px 10px;
+  background: #fbfaf6;
+}
+
+.social-post-detail {
+  margin: 0;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.social-table-control,
+.social-table-actions {
+  display: grid;
+  gap: 6px;
+}
+
+.social-table-control select,
+.social-table-actions select {
+  min-height: 32px;
+  min-width: 150px;
+  padding: 0.32rem 0.48rem;
+}
+
+.social-table-actions {
+  grid-template-columns: minmax(150px, 1fr) max-content;
+  align-items: center;
+  min-width: 260px;
+}
+
+.social-table-actions button {
+  min-height: 32px;
+  padding: 0.32rem 0.52rem;
+}
+
+.table-brand {
+  justify-content: flex-start;
+}
+
 .social-post-card {
   gap: 12px;
   padding: 14px 16px;
@@ -2680,7 +2755,8 @@ label {
   }
 
   .tracker-toolbar,
-  .social-dropdown-action {
+  .social-dropdown-action,
+  .social-table-actions {
     grid-template-columns: 1fr;
   }
 

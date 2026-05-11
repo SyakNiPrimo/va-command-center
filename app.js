@@ -2138,7 +2138,27 @@ function renderPhotoPrepForPost(post) {
   }).join("");
 }
 
-function renderSocialPostCard(post) {
+function getSocialQuickActionOptions() {
+  return [
+    ["save-details", "Save Details"],
+    ["generate-caption", "Generate Caption"],
+    ["copy-caption", "Copy Caption"],
+    ["open-mls", "Open MLS Link"],
+    ["graphics-link", "Add Graphics Link"],
+    ["ig-link", "Save IG Post Link"],
+    ["whatsapp", "Prepare WhatsApp Handoff"],
+    ["mark-posted", "Mark Posted"],
+    ["mark-needs-design", "Mark Needs Design"],
+    ["mark-design-done", "Mark Design Done"],
+    ["mark-needs-photos", "Mark Needs Photos"],
+    ["mark-photos-selected", "Mark Photos Selected"],
+    ["mark-photo-prep-ready", "Mark Photo Prep Ready"],
+    ["mark-caption-ready", "Mark Caption Ready"],
+    ["mark-ready-whatsapp", "Mark Ready To Send To WhatsApp"]
+  ].map(([value, label]) => `<option value="${value}">${label}</option>`).join("");
+}
+
+function renderSocialPostTableRow(post) {
   const status = post.statusWorkflow || "New";
   const listingBranding = getListingBranding(post.price);
   const logoType = post.logoType || listingBranding.logoType;
@@ -2146,106 +2166,94 @@ function renderSocialPostCard(post) {
   const workflowOptions = socialWorkflowStatuses.map((workflow) => `
     <option value="${escapeHTML(workflow)}" ${workflow === status ? "selected" : ""}>${escapeHTML(workflow)}</option>
   `).join("");
-  const quickActions = [
-    ["save-details", "Save Details"],
-    ["mark-needs-design", "Mark Needs Design"],
-    ["mark-design-done", "Mark Design Done"],
-    ["mark-needs-photos", "Mark Needs Photos"],
-    ["mark-photos-selected", "Mark Photos Selected"],
-    ["mark-photo-prep-ready", "Mark Photo Prep Ready"],
-    ["generate-caption", "Generate Caption"],
-    ["mark-caption-ready", "Mark Caption Ready"],
-    ["copy-caption", "Copy Caption"],
-    ["open-mls", "Open MLS Link"],
-    ["graphics-link", "Add Graphics Link"],
-    ["ig-link", "Save IG Post Link"],
-    ["whatsapp", "Prepare WhatsApp Handoff"],
-    ["mark-ready-whatsapp", "Mark Ready To Send To WhatsApp"],
-    ["mark-posted", "Mark Posted"]
-  ];
-  const quickActionOptions = quickActions.map(([value, label]) => `<option value="${value}">${label}</option>`).join("");
+  const quickActionOptions = getSocialQuickActionOptions();
 
   return `
-    <article class="social-post-card status-${socialStatusClass(status)}">
-      <div class="social-card-head">
-        <div>
-          <p class="eyebrow">${escapeHTML(post.id || "No ID")}</p>
-          <h3>${escapeHTML(getSocialPostTitle(post))}</h3>
-          ${warnings.length ? `<p class="warning-line">${escapeHTML(warnings.join(". "))}</p>` : ""}
-        </div>
-        <div class="listing-brand-stack">
-          ${brandImageHTML(listingBranding.logo, `${listingBranding.label} listing logo`, `listing-brand ${listingBranding.className}`, listingBranding.label)}
+    <tr class="social-post-table-row status-${socialStatusClass(status)}">
+      <td>
+        <strong>${escapeHTML(post.propertyAddress || "Address needed")}</strong>
+        <span>${escapeHTML(post.id || "No ID")} • ${escapeHTML(post.listingType || "Listing")}</span>
+        ${warnings.length ? `<span class="warning-line">${escapeHTML(warnings.join(". "))}</span>` : ""}
+      </td>
+      <td>${escapeHTML(post.agentName || "Agent needed")}</td>
+      <td>${escapeHTML(post.mlsNumber || "Missing")}</td>
+      <td>${escapeHTML(formatPriceLabel(post.price) || "No price")}</td>
+      <td>
+        <div class="listing-brand-stack table-brand">
           <span class="brand-pill ${escapeHTML(listingBranding.className)}">${escapeHTML(listingBranding.label)}</span>
-          <span class="status-pill">${escapeHTML(status)}</span>
         </div>
-      </div>
-
-      <div class="social-field-grid">
-        ${socialField("Date Received", post.dateReceived)}
-        ${socialField("MLS#", post.mlsNumber)}
-        ${socialField("Price", formatPriceLabel(post.price))}
-        ${socialField("Bedrooms", post.bedrooms)}
-        ${socialField("Bathrooms", post.bathrooms)}
-        ${socialField("Approx. Sq Ft", post.squareFeet)}
-      </div>
-
-      <details class="listing-detail-panel">
-        <summary>Links, Branding And Tracking</summary>
-        <div class="social-field-grid compact">
-          ${socialField("Branding Type", listingBranding.label)}
-          ${socialField("Logo Type", logoType)}
-          ${socialField("MLS Link", post.mlsLink, true)}
-          ${socialField("Agent Headshot", post.agentHeadshotLink || getHeadshotLinkFromSelection(post.agentHeadshotFile || getSuggestedHeadshot(post).selected), true)}
-          ${socialField("Duplicate Validation", post.duplicateValidation)}
-          ${socialField("Canva Video", post.canvaVideoLink, true)}
-          ${socialField("Graphics Link", post.graphicsLink, true)}
-          ${socialField("IG Post Link", post.igPostLink, true)}
-        </div>
-      </details>
-
-      <details class="listing-detail-panel">
-        <summary>Listing Details And Agent Check</summary>
-        <div class="social-edit-grid">
-          ${renderHeadshotSelector(post)}
-          ${socialInputField("Agent Instagram Handle", "agentInstagramHandle", post.agentInstagramHandle || getAgentProfile(post.agentName).instagram || "")}
-          ${socialInputField("Price", "price", post.price || "")}
-          ${socialInputField("Bedrooms", "bedrooms", post.bedrooms || "")}
-          ${socialInputField("Bathrooms", "bathrooms", post.bathrooms || "")}
-          ${socialInputField("Approximate Square Feet", "squareFeet", post.squareFeet || "")}
-          ${socialInputField("Canva Video Link", "canvaVideoLink", post.canvaVideoLink || "")}
-          ${socialTextareaField("MLS Description", "mlsDescription", post.mlsDescription || "")}
-        </div>
-        <div class="mini-check-grid">${renderVerificationChecks(post)}</div>
-      </details>
-
-      <details class="listing-detail-panel">
-        <summary>6 Photo Prep</summary>
-        <div class="listing-photo-grid">${renderPhotoPrepForPost(post)}</div>
-      </details>
-
-      ${post.caption ? `<textarea class="caption-preview" readonly>${escapeHTML(post.caption)}</textarea>` : ""}
-
-      <div class="social-action-group">
-        <span>Workflow</span>
-        <div class="social-dropdown-action">
+      </td>
+      <td>
+        <div class="social-table-control">
           <select data-social-workflow-select="${escapeHTML(post.id)}" aria-label="Workflow for ${escapeHTML(post.propertyAddress || post.id)}">
             ${workflowOptions}
           </select>
         </div>
-      </div>
-
-      <div class="social-action-group">
-        <span>Quick Actions</span>
-        <div class="social-dropdown-action">
+      </td>
+      <td>
+        <div class="social-table-actions">
           <select data-social-action-select="${escapeHTML(post.id)}" aria-label="Quick action for ${escapeHTML(post.propertyAddress || post.id)}">
             ${quickActionOptions}
           </select>
           <button data-social-action-run="${escapeHTML(post.id)}" type="button">Run Action</button>
         </div>
-      </div>
-    </article>
+      </td>
+    </tr>
+    <tr class="social-post-detail-row">
+      <td colspan="7">
+        <details class="listing-detail-panel social-post-detail" data-social-edit-container="${escapeHTML(post.id)}">
+          <summary>Details, links, agent check, caption, and photo prep</summary>
+          <div class="social-field-grid compact">
+            ${socialField("Date Received", post.dateReceived)}
+            ${socialField("Listing Type", post.listingType)}
+            ${socialField("Logo Type", logoType)}
+            ${socialField("MLS Link", post.mlsLink, true)}
+            ${socialField("Agent Headshot", post.agentHeadshotLink || getHeadshotLinkFromSelection(post.agentHeadshotFile || getSuggestedHeadshot(post).selected), true)}
+            ${socialField("Duplicate Validation", post.duplicateValidation)}
+            ${socialField("Canva Video", post.canvaVideoLink, true)}
+            ${socialField("Graphics Link", post.graphicsLink, true)}
+            ${socialField("IG Post Link", post.igPostLink, true)}
+          </div>
+          <div class="social-edit-grid">
+            ${renderHeadshotSelector(post)}
+            ${socialInputField("Agent Instagram Handle", "agentInstagramHandle", post.agentInstagramHandle || getAgentProfile(post.agentName).instagram || "")}
+            ${socialInputField("Price", "price", post.price || "")}
+            ${socialInputField("Bedrooms", "bedrooms", post.bedrooms || "")}
+            ${socialInputField("Bathrooms", "bathrooms", post.bathrooms || "")}
+            ${socialInputField("Approximate Square Feet", "squareFeet", post.squareFeet || "")}
+            ${socialInputField("Canva Video Link", "canvaVideoLink", post.canvaVideoLink || "")}
+            ${socialTextareaField("MLS Description", "mlsDescription", post.mlsDescription || "")}
+          </div>
+          <div class="mini-check-grid">${renderVerificationChecks(post)}</div>
+          <div class="listing-photo-grid">${renderPhotoPrepForPost(post)}</div>
+          ${post.caption ? `<textarea class="caption-preview" readonly>${escapeHTML(post.caption)}</textarea>` : ""}
+        </details>
+      </td>
+    </tr>
   `;
 }
+
+function renderSocialPostTable(posts) {
+  return `
+    <div class="table-wrap social-post-table-wrap">
+      <table class="work-table social-post-table">
+        <thead>
+          <tr>
+            <th>Listing</th>
+            <th>Agent</th>
+            <th>MLS</th>
+            <th>Price</th>
+            <th>Branding</th>
+            <th>Workflow</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>${posts.map(renderSocialPostTableRow).join("")}</tbody>
+      </table>
+    </div>
+  `;
+}
+
 function renderSocialPosts() {
   if (!Array.isArray(state.socialPosts)) state.socialPosts = [];
   if (!state.agentProfiles) state.agentProfiles = {};
@@ -2260,7 +2268,7 @@ function renderSocialPosts() {
     list.innerHTML = `<div class="empty-state">No active listing social post tasks match this view yet.</div>`;
     return;
   }
-  list.innerHTML = posts.map(renderSocialPostCard).join("");
+  list.innerHTML = renderSocialPostTable(posts);
 }
 
 function buildCaptionFromSocialPost(post) {
@@ -2348,7 +2356,8 @@ function createLocalSocialPostFromForm() {
 }
 
 function getSocialPostCardElement(id) {
-  return document.querySelector(`.social-post-card button[data-id="${CSS.escape(id)}"]`)?.closest(".social-post-card");
+  return document.querySelector(`[data-social-edit-container="${CSS.escape(id)}"]`)
+    || document.querySelector(`.social-post-card button[data-id="${CSS.escape(id)}"]`)?.closest(".social-post-card");
 }
 
 function collectSocialPostDetailsFromCard(post) {
