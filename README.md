@@ -53,6 +53,8 @@ To enable Supabase backup:
 
 The app still works locally if Supabase is not set up or offline.
 
+The Supabase backup includes login metadata such as login enabled, current username, last login time, last logout time, and session type. It does **not** store the local password. For secure cloud login, use Supabase Auth instead of frontend-stored credentials.
+
 Security note: the Supabase anon public key is allowed in frontend code, but broad anon write policies are not production security. Before storing sensitive data on public hosting, upgrade to Supabase Auth and user-specific Row Level Security policies.
 
 Later upgrade paths:

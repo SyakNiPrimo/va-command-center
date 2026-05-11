@@ -486,6 +486,13 @@ function loadState() {
     paymentRequests: {},
     weeklyTriviaPosts: {},
     triviaHistory: [],
+    login: {
+      enabled: true,
+      currentUser: "",
+      lastLoginAt: "",
+      lastLogoutAt: "",
+      sessionType: ""
+    },
     supabase: {
       lastSyncAt: "",
       lastDirection: "",
@@ -601,6 +608,14 @@ function handleLogin(event) {
   const error = document.querySelector("#loginError");
   if (username === authConfig.username && password === authConfig.password) {
     setAuthSession(username, remember);
+    state.login = {
+      enabled: true,
+      currentUser: username,
+      lastLoginAt: new Date().toISOString(),
+      lastLogoutAt: state.login?.lastLogoutAt || "",
+      sessionType: remember ? "Local storage" : "Session storage"
+    };
+    saveState();
     if (error) error.textContent = "";
     document.querySelector("#loginForm")?.reset();
     applyAuthState();
@@ -612,6 +627,14 @@ function handleLogin(event) {
 }
 
 function handleLogout() {
+  state.login = {
+    enabled: true,
+    currentUser: "",
+    lastLoginAt: state.login?.lastLoginAt || "",
+    lastLogoutAt: new Date().toISOString(),
+    sessionType: ""
+  };
+  saveState();
   clearAuthSession();
   applyAuthState();
   showToast("Logged out.");
@@ -624,6 +647,7 @@ function setDailyState() {
   if (!state.paymentRequests) state.paymentRequests = {};
   if (!state.weeklyTriviaPosts) state.weeklyTriviaPosts = {};
   if (!Array.isArray(state.triviaHistory)) state.triviaHistory = [];
+  if (!state.login) state.login = { enabled: true, currentUser: "", lastLoginAt: "", lastLogoutAt: "", sessionType: "" };
   if (!state.supabase) state.supabase = { lastSyncAt: "", lastDirection: "", lastStatus: "Not checked" };
   state.tasks = state.tasks.filter((task) => task.category !== "Follow Up Boss");
   const readAiTaskExists = state.tasks.some((task) => task.title === "Paste morning Zoom link into Read.ai");
@@ -1231,7 +1255,9 @@ function renderSecuritySettings() {
   const rows = [
     ["Login enabled", "Yes"],
     ["Current user", session?.username || "Not logged in"],
-    ["Session type", session?.sessionType || "None"]
+    ["Session type", session?.sessionType || "None"],
+    ["Last login", state.login?.lastLoginAt ? formatDateTime(state.login.lastLoginAt) : "Not stored yet"],
+    ["Last logout", state.login?.lastLogoutAt ? formatDateTime(state.login.lastLogoutAt) : "Not stored yet"]
   ];
   container.innerHTML = rows.map(([label, value]) => `
     <div class="security-setting-card">
