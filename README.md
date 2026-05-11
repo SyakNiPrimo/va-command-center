@@ -387,6 +387,39 @@ Caption server setup:
 
 The OpenAI API key is never stored in frontend files.
 
+GitHub Pages ChatGPT setup:
+
+GitHub Pages cannot safely store the OpenAI API key, so the published app calls Supabase Edge Functions instead of the local caption server.
+
+Supabase functions included:
+
+- `supabase/functions/generate-caption/index.ts`
+- `supabase/functions/generate-trivia/index.ts`
+
+Deploy steps:
+
+1. Install and log in to the Supabase CLI.
+2. Link this project to Supabase project `tmheeonnhqetjwslmyjf`.
+3. Set the secret:
+
+```powershell
+supabase secrets set OPENAI_API_KEY=your_openai_api_key
+```
+
+4. Deploy the functions:
+
+```powershell
+supabase functions deploy generate-caption
+supabase functions deploy generate-trivia
+```
+
+When the app runs on GitHub Pages, it calls:
+
+- `https://tmheeonnhqetjwslmyjf.supabase.co/functions/v1/generate-caption`
+- `https://tmheeonnhqetjwslmyjf.supabase.co/functions/v1/generate-trivia`
+
+When the app runs locally on `localhost` or `127.0.0.1`, it still uses the local caption server at `http://127.0.0.1:8791`.
+
 ### Testing With Sample Data
 
 Use the Social tab buttons:

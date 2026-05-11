@@ -120,6 +120,9 @@ const instagramPhotoOutput = {
   jpegQuality: 0.92
 };
 const captionServerUrl = "http://127.0.0.1:8791/generate-caption";
+const triviaServerUrl = "http://127.0.0.1:8791/generate-trivia";
+const supabaseCaptionFunctionUrl = `${supabaseConfig.projectUrl}/functions/v1/generate-caption`;
+const supabaseTriviaFunctionUrl = `${supabaseConfig.projectUrl}/functions/v1/generate-trivia`;
 const agentHeadshotsFolderUrl = "https://drive.google.com/drive/folders/1upm9VVosOnJTwSaa36HWhnfeVxWy5XBB?usp=sharing";
 const agentHeadshotFiles = [
   "Alijah.jpeg",
@@ -967,10 +970,29 @@ function cleanTriviaCopy(text) {
   return String(text || "").replace(/[\u2014\u2013-]/g, ",").trim();
 }
 
+function shouldUseSupabaseAiEndpoint() {
+  return ["https:", "http:"].includes(window.location.protocol) && !["localhost", "127.0.0.1", ""].includes(window.location.hostname);
+}
+
+function getAiEndpointUrl(type) {
+  const isTrivia = type === "trivia";
+  if (shouldUseSupabaseAiEndpoint()) return isTrivia ? supabaseTriviaFunctionUrl : supabaseCaptionFunctionUrl;
+  return isTrivia ? triviaServerUrl : captionServerUrl;
+}
+
+function getAiEndpointHeaders() {
+  if (!shouldUseSupabaseAiEndpoint()) return { "Content-Type": "application/json" };
+  return {
+    "Content-Type": "application/json",
+    apikey: supabaseConfig.anonKey,
+    Authorization: `Bearer ${supabaseConfig.anonKey}`
+  };
+}
+
 async function improveTriviaWithServer(post) {
-  const response = await fetch("http://127.0.0.1:8791/generate-trivia", {
+  const response = await fetch(getAiEndpointUrl("trivia"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getAiEndpointHeaders(),
     body: JSON.stringify(post)
   });
   const result = await response.json();
@@ -2634,9 +2656,9 @@ function buildCaptionPayload(post) {
 async function generateCaptionWithServer(post) {
   const payload = buildCaptionPayload(post);
   if (!payload.agentInstagramHandle) showToast("Agent handle missing. Add before finalizing caption.");
-  const response = await fetch(captionServerUrl, {
+  const response = await fetch(getAiEndpointUrl("caption"), {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getAiEndpointHeaders(),
     body: JSON.stringify(payload)
   });
   const result = await response.json();
