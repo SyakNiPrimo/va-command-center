@@ -21,6 +21,7 @@ const SOCIAL_POSTS_SHEET = "Social Post Tasks";
 const SOURCE_LABEL = "Listing Updates";
 const PROCESSED_LABEL = "Processed Listing Updates";
 const REVIEW_LABEL = "Needs Review Listing Updates";
+const FLEXMLS_SENDER = "listingupdates@flexmail.flexmls.com";
 
 const SOCIAL_HEADERS = [
   "ID", "Date Received", "Agent Name", "Listing Type", "MLS#", "MLS Link", "Property Address", "Price",
@@ -79,6 +80,7 @@ function syncListingEmails(options) {
   const source = getOrCreateLabel(SOURCE_LABEL);
   const processed = getOrCreateLabel(PROCESSED_LABEL);
   const review = getOrCreateLabel(REVIEW_LABEL);
+  const autoLabelResult = autoLabelListingUpdateEmails({ source, processed, review, afterDate, maxResults, dryRun });
   const threads = getListingThreads(source, afterDate, maxResults);
   const sheet = getSheet();
   const headers = ensureHeaders(sheet);
@@ -87,6 +89,8 @@ function syncListingEmails(options) {
     ok: true,
     dryRun,
     afterDate: afterDate || "",
+    autoLabelCount: autoLabelResult.autoLabelCount,
+    autoLabelSkippedCount: autoLabelResult.autoLabelSkippedCount,
     processedCount: 0,
     createdCount: 0,
     duplicateCount: 0,
@@ -176,6 +180,49 @@ function syncListingEmails(options) {
   });
 
   return result;
+}
+
+function autoLabelListingUpdateEmails(options) {
+  const source = options.source;
+  const processed = options.processed;
+  const review = options.review;
+  const afterDate = options.afterDate || "";
+  const maxResults = options.maxResults || 50;
+  const dryRun = Boolean(options.dryRun);
+  const threads = getCandidateListingThreads(afterDate, maxResults);
+  let autoLabelCount = 0;
+  let autoLabelSkippedCount = 0;
+
+  threads.forEach((thread) => {
+    const labels = thread.getLabels().map((label) => label.getName());
+    const alreadyHandled = labels.includes(SOURCE_LABEL) || labels.includes(PROCESSED_LABEL) || labels.includes(REVIEW_LABEL);
+    if (alreadyHandled) {
+      autoLabelSkippedCount += 1;
+      return;
+    }
+    if (!isListingUpdateThread(thread)) {
+      autoLabelSkippedCount += 1;
+      return;
+    }
+    autoLabelCount += 1;
+    if (!dryRun) thread.addLabel(source);
+  });
+
+  return { autoLabelCount, autoLabelSkippedCount };
+}
+
+function getCandidateListingThreads(afterDate, maxResults) {
+  const datePart = afterDate ? ` after:${afterDate.replace(/-/g, "/")}` : " newer_than:30d";
+  const query = `from:${FLEXMLS_SENDER}${datePart} -label:"${PROCESSED_LABEL}" -label:"${REVIEW_LABEL}"`;
+  return GmailApp.search(query, 0, maxResults);
+}
+
+function isListingUpdateThread(thread) {
+  const messages = thread.getMessages();
+  const message = messages[messages.length - 1];
+  const text = `${message.getSubject() || ""}\n${stripHtml(message.getBody() || "")}`;
+  const status = classifyStatus(text);
+  return Boolean(status.listingType || status.review);
 }
 
 function parseListingEmail(message) {

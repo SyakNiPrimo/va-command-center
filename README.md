@@ -360,19 +360,20 @@ Required columns include:
    - `Listing Updates`
    - `Processed Listing Updates`
    - `Needs Review Listing Updates`
-2. Add new MLS/listing status emails to `Listing Updates`.
-3. Open the Task Tracker sheet.
-4. Go to Extensions > Apps Script.
-5. Paste `gmail-listing-sync-apps-script.js`.
-6. Save the project.
-7. In the function dropdown, select `authorizeListingEmailSync`.
-8. Click **Run**.
-9. Approve Gmail and Google Sheets permissions for `ben@jakobovgroup.com`.
-10. Deploy > New deployment > Web app.
-11. Set **Execute as** to `Me`.
-12. Set access to `Anyone with the link` or your Workspace users.
-13. Copy the Web app URL.
-14. Paste it into `app.js` as `gmailListingSyncUrl`.
+2. New Flexmls emails from `listingupdates@flexmail.flexmls.com` are automatically labeled as `Listing Updates` by the sync script before processing.
+3. You can still manually add `Listing Updates` to any email you want the script to process.
+4. Open the Task Tracker sheet.
+5. Go to Extensions > Apps Script.
+6. Paste `gmail-listing-sync-apps-script.js`.
+7. Save the project.
+8. In the function dropdown, select `authorizeListingEmailSync`.
+9. Click **Run**.
+10. Approve Gmail and Google Sheets permissions for `ben@jakobovgroup.com`.
+11. Deploy > New deployment > Web app.
+12. Set **Execute as** to `Me`.
+13. Set access to `Anyone with the link` or your Workspace users.
+14. Copy the Web app URL.
+15. Paste it into `app.js` as `gmailListingSyncUrl`.
 
 If the app says Gmail sync failed and the Apps Script response mentions permissions, run `authorizeListingEmailSync` manually, then redeploy a new Web App version.
 

@@ -2024,7 +2024,7 @@ async function syncSocialPostsFromSheet() {
 }
 
 function summarizeListingEmailSync(result, dryRun = false) {
-  return `${dryRun ? "Test complete" : "Email sync complete"}: processed ${result.processedCount || 0}, created ${result.createdCount || 0}, duplicates ${result.duplicateCount || 0}, needs review ${result.needsReviewCount || 0}, skipped ${result.skippedCount || 0}.`;
+  return `${dryRun ? "Test complete" : "Email sync complete"}: auto labeled ${result.autoLabelCount || 0}, processed ${result.processedCount || 0}, created ${result.createdCount || 0}, duplicates ${result.duplicateCount || 0}, needs review ${result.needsReviewCount || 0}, skipped ${result.skippedCount || 0}.`;
 }
 
 async function syncListingEmails(options = {}) {
