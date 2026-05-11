@@ -123,6 +123,7 @@ const captionServerUrl = "http://127.0.0.1:8791/generate-caption";
 const triviaServerUrl = "http://127.0.0.1:8791/generate-trivia";
 const supabaseCaptionFunctionUrl = `${supabaseConfig.projectUrl}/functions/v1/generate-caption`;
 const supabaseTriviaFunctionUrl = `${supabaseConfig.projectUrl}/functions/v1/generate-trivia`;
+const supabaseTwilightFunctionUrl = `${supabaseConfig.projectUrl}/functions/v1/generate-twilight-image`;
 const listingCaptionGptUrl = "https://chatgpt.com/g/g-6a0213727ae8819182e88a879a7cfd84-listing-caption-gpt";
 const virtualTwilightGptUrl = "https://chatgpt.com/g/g-6a02531e93548191a244d8c4e3a69718-real-estate-virtual-twilight-editor";
 const agentHeadshotsFolderUrl = "https://drive.google.com/drive/folders/1upm9VVosOnJTwSaa36HWhnfeVxWy5XBB?usp=sharing";
@@ -1013,6 +1014,14 @@ function getAiEndpointUrl(type) {
 
 function getAiEndpointHeaders() {
   if (!shouldUseSupabaseAiEndpoint()) return { "Content-Type": "application/json" };
+  return {
+    "Content-Type": "application/json",
+    apikey: supabaseConfig.anonKey,
+    Authorization: `Bearer ${supabaseConfig.anonKey}`
+  };
+}
+
+function getSupabaseFunctionHeaders() {
   return {
     "Content-Type": "application/json",
     apikey: supabaseConfig.anonKey,
@@ -2866,6 +2875,21 @@ function openVirtualTwilightGpt(post = {}) {
   showToast("Virtual twilight prompt copied. Paste it into the GPT.");
 }
 
+function buildVirtualTwilightApiPrompt({ address = "", notes = "" } = {}) {
+  return `Create a realistic virtual twilight edit for this real estate exterior photo.
+
+Property context: ${address || "property address not provided"}
+Additional notes: ${notes || "warm exterior lights, realistic twilight sky, premium real estate marketing look"}
+
+Rules:
+- Keep the property architecture accurate.
+- Do not change the home structure, roofline, windows, doors, landscaping layout, driveway, lot details, or permanent property features.
+- Create a realistic twilight sky and tasteful warm exterior lighting.
+- Do not add people, cars, signs, unrealistic objects, or fake property features.
+- Keep the output professional, natural, and suitable for real estate marketing.
+- Preserve compliance accuracy and avoid misleading edits.`;
+}
+
 async function generateCaptionWithServer(post) {
   const payload = buildCaptionPayload(post);
   if (!payload.agentInstagramHandle) showToast("Agent handle missing. Add before finalizing caption.");
@@ -3161,6 +3185,15 @@ function readImageFile(file) {
   });
 }
 
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 function drawCoverImage(ctx, image, width, height) {
   const scale = Math.max(width / image.width, height / image.height);
   const drawWidth = image.width * scale;
@@ -3199,6 +3232,20 @@ async function createInstagramPhoto(file) {
   return canvas.toDataURL("image/jpeg", instagramPhotoOutput.jpegQuality);
 }
 
+async function createTwilightUploadImage(file) {
+  const image = await readImageFile(file);
+  const maxDimension = 1600;
+  const scale = Math.min(1, maxDimension / Math.max(image.width, image.height));
+  const canvas = document.createElement("canvas");
+  canvas.width = Math.max(1, Math.round(image.width * scale));
+  canvas.height = Math.max(1, Math.round(image.height * scale));
+  const ctx = canvas.getContext("2d");
+  ctx.imageSmoothingEnabled = true;
+  ctx.imageSmoothingQuality = "high";
+  ctx.drawImage(image, 0, 0, canvas.width, canvas.height);
+  return canvas.toDataURL("image/jpeg", 0.92);
+}
+
 function makePhotoFileName(slot, prefix = "") {
   const safePrefix = String(prefix || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "").slice(0, 48);
   const safeSlot = slot.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
@@ -3223,6 +3270,61 @@ async function generatePhotoSlot(slot) {
   } catch (error) {
     output.innerHTML = `<span>Could not generate this image.</span>`;
     showToast("Photo generation failed.");
+  }
+}
+
+function makeTwilightFileName(address = "") {
+  const safeAddress = String(address || "listing")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "")
+    .slice(0, 56);
+  return `${safeAddress || "listing"}-virtual-twilight.jpg`;
+}
+
+async function generateVirtualTwilight(event) {
+  event.preventDefault();
+  const file = document.querySelector("#twilightPhoto")?.files?.[0];
+  const address = document.querySelector("#twilightAddress")?.value.trim() || "";
+  const notes = document.querySelector("#twilightNotes")?.value.trim() || "";
+  const status = document.querySelector("#twilightStatus");
+  const output = document.querySelector("#twilightOutput");
+
+  if (!file) {
+    showToast("Upload an exterior photo first.");
+    return;
+  }
+
+  if (status) status.textContent = "Generating virtual twilight image. This can take a bit...";
+  if (output) output.innerHTML = `<span>Generating twilight edit...</span>`;
+
+  try {
+    const imageDataUrl = await createTwilightUploadImage(file);
+    const response = await fetch(supabaseTwilightFunctionUrl, {
+      method: "POST",
+      headers: getSupabaseFunctionHeaders(),
+      body: JSON.stringify({
+        imageDataUrl,
+        prompt: buildVirtualTwilightApiPrompt({ address, notes }),
+        address,
+        notes
+      })
+    });
+    const result = await response.json();
+    if (!response.ok || !result.ok) throw new Error(result.error || "Virtual twilight generation failed.");
+    const imageUrl = result.imageDataUrl || `data:image/jpeg;base64,${result.b64Json}`;
+    if (output) {
+      output.innerHTML = `
+        <img src="${imageUrl}" alt="Virtual twilight preview">
+        <a class="download-link" href="${imageUrl}" download="${escapeHTML(makeTwilightFileName(address))}">Download Twilight JPG</a>
+      `;
+    }
+    if (status) status.textContent = "Virtual twilight generated. Review accuracy before posting.";
+    showToast("Virtual twilight image generated.");
+  } catch (error) {
+    if (output) output.innerHTML = `<span>Could not generate virtual twilight image.</span>`;
+    if (status) status.textContent = `Virtual twilight error: ${error.message}`;
+    showToast("Virtual twilight generation failed.");
   }
 }
 
@@ -4161,6 +4263,8 @@ document.addEventListener("DOMContentLoaded", () => {
   document.querySelector("#generatePhotoPrepBtn").addEventListener("click", () => {
     photoPrepSlots.forEach((slot) => generatePhotoSlot(slot));
   });
+
+  document.querySelector("#twilightForm")?.addEventListener("submit", generateVirtualTwilight);
 
   document.querySelector("#copyTwilightPromptBtn")?.addEventListener("click", () => {
     copyText(buildVirtualTwilightPrompt());

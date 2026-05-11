@@ -192,6 +192,32 @@ The Photo Prep area includes a manual link to the custom **Real Estate Virtual T
 
 Use it only for virtual twilight exterior marketing images. The app copies a prompt that tells the GPT to keep the property architecture accurate, avoid changing real home details, and create a realistic twilight look. Listing rows also include quick actions to open this GPT or copy the twilight prompt with listing context.
 
+The app also includes an in-app **Virtual Twilight Generator**. This uses a Supabase Edge Function so the OpenAI API key stays out of the frontend.
+
+Supabase function:
+
+- `supabase/functions/generate-twilight-image/index.ts`
+
+Deploy it with:
+
+```powershell
+supabase functions deploy generate-twilight-image
+```
+
+Required Supabase secret:
+
+```powershell
+supabase secrets set OPENAI_API_KEY=your_openai_api_key
+```
+
+Optional image model override:
+
+```powershell
+supabase secrets set OPENAI_IMAGE_MODEL=gpt-image-1.5
+```
+
+The generator is for exterior virtual twilight edits only. Always review the result before using it in marketing.
+
 ## Attendance Tracking
 
 The Attendance tab tracks morning Zoom and Office attendance in a spreadsheet-style table with checkboxes per agent per selected date.
@@ -435,6 +461,7 @@ Supabase functions included:
 
 - `supabase/functions/generate-caption/index.ts`
 - `supabase/functions/generate-trivia/index.ts`
+- `supabase/functions/generate-twilight-image/index.ts`
 
 Deploy steps:
 
@@ -451,12 +478,14 @@ supabase secrets set OPENAI_API_KEY=your_openai_api_key
 ```powershell
 supabase functions deploy generate-caption
 supabase functions deploy generate-trivia
+supabase functions deploy generate-twilight-image
 ```
 
 When the app runs on GitHub Pages, it calls:
 
 - `https://tmheeonnhqetjwslmyjf.supabase.co/functions/v1/generate-caption`
 - `https://tmheeonnhqetjwslmyjf.supabase.co/functions/v1/generate-trivia`
+- `https://tmheeonnhqetjwslmyjf.supabase.co/functions/v1/generate-twilight-image`
 
 When the app runs locally on `localhost` or `127.0.0.1`, it still uses the local caption server at `http://127.0.0.1:8791`.
 

@@ -525,6 +525,31 @@
           <button id="copyTwilightPromptBtn" type="button" class="quiet">Copy Twilight Prompt</button>
           <a id="virtualTwilightGptLink" class="button-link quiet" href="https://chatgpt.com/g/g-6a02531e93548191a244d8c4e3a69718-real-estate-virtual-twilight-editor" target="_blank" rel="noreferrer">Open Twilight GPT</a>
         </div>
+        <div class="twilight-generator">
+          <div>
+            <h4>Virtual Twilight Generator</h4>
+            <p class="section-note">Upload one exterior photo. The backend creates a twilight version for review before any posting.</p>
+          </div>
+          <form id="twilightForm" class="task-form twilight-form">
+            <label>
+              Property address
+              <input id="twilightAddress" placeholder="Property address for file naming and prompt context">
+            </label>
+            <label>
+              Exterior photo
+              <input id="twilightPhoto" type="file" accept="image/*">
+            </label>
+            <label class="wide">
+              Edit notes
+              <input id="twilightNotes" placeholder="Example: warm exterior lights, realistic sunset sky, keep architecture unchanged">
+            </label>
+            <button id="generateTwilightBtn" type="submit">Generate Twilight</button>
+          </form>
+          <div id="twilightStatus" class="sync-inline-status">Virtual twilight uses Supabase and OpenAI. Review accuracy before posting.</div>
+          <div id="twilightOutput" class="twilight-output">
+            <span>No twilight image generated yet.</span>
+          </div>
+        </div>
         <div id="photoPrepSlots" class="photo-prep-grid"></div>
       </article>
 
