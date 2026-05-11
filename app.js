@@ -445,6 +445,13 @@ function todayArizonaISO(date = new Date()) {
   return `${parts.year}-${parts.month}-${parts.day}`;
 }
 
+function getArizonaDateFromValue(value) {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value).slice(0, 10);
+  return todayArizonaISO(date);
+}
+
 function addDaysISO(dateString, days) {
   const date = new Date(`${dateString}T12:00:00Z`);
   date.setUTCDate(date.getUTCDate() + days);
@@ -521,7 +528,7 @@ function markTaskCompletedByKey(key, completedAt = new Date().toISOString()) {
   if (!task) return false;
   task.status = "Completed";
   task.completedAt = completedAt;
-  task.completedDate = todayArizonaISO();
+  task.completedDate = getArizonaDateFromValue(completedAt);
   return true;
 }
 
@@ -1262,7 +1269,7 @@ function renderTasks() {
 
   const completedToday = state.tasks.filter((task) => {
     if (task.status !== "Completed") return false;
-    const completedDate = task.completedDate || (task.completedAt ? task.completedAt.slice(0, 10) : task.due);
+    const completedDate = task.completedDate || getArizonaDateFromValue(task.completedAt) || task.due;
     return completedDate === todayArizonaISO() || task.due === todayArizonaISO();
   });
 
@@ -3502,7 +3509,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (action === "complete") {
       task.status = "Completed";
       task.completedAt = new Date().toISOString();
-      task.completedDate = todayArizonaISO();
+      task.completedDate = getArizonaDateFromValue(task.completedAt);
     }
     if (action === "delete") state.tasks = state.tasks.filter((item) => item.id !== task.id);
     saveState();
