@@ -91,6 +91,7 @@ function getSocialPostTasks(includeCompleted) {
 
   for (let index = 1; index < values.length; index += 1) {
     const rowObject = rowToObject(headers, values[index]);
+    if (isBlankSocialPostRow(rowObject)) continue;
     if (!rowObject.ID) continue;
     if (!includeCompleted && isSocialPostComplete(rowObject)) continue;
     rows.push(rowObject);
@@ -235,6 +236,11 @@ function formatCell(value) {
 
 function isSocialPostComplete(rowObject) {
   return isPostedYes(rowObject.Posted) || String(rowObject["Status (Workflow)"] || "").trim().toLowerCase() === "completed";
+}
+
+function isBlankSocialPostRow(rowObject) {
+  const meaningfulFields = ["Agent Name", "Listing Type", "MLS#", "Property Address", "Status (Workflow)", "Source Email ID", "IG Post Link"];
+  return meaningfulFields.every((field) => !String(rowObject[field] || "").trim());
 }
 
 function isPostedYes(value) {

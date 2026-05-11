@@ -21,7 +21,7 @@ const statuses = [
 
 const priorities = ["Urgent", "High", "Medium", "Low"];
 const attendanceSyncUrl = "https://script.google.com/macros/s/AKfycbzr2BcF1hd9dEx6_dzuw1SZgMF6qppY67Pf4Fh1xJTpwX_DA473GaB5uLkh_u6wl6mPew/exec";
-const socialPostsSyncUrl = "";
+const socialPostsSyncUrl = "https://script.google.com/macros/s/AKfycbxZOtXMpY48rD_Fk2j7kwAzlh8J9BdTt08FzGJo8ySWYSVhmM_K0EHIAq6XlbbxRL4eug/exec";
 const gmailListingSyncUrl = "https://script.google.com/macros/s/AKfycbzfh_R3buhiEjv73vRPhAbn8wVbcfUC0sXqOF8LHMHqaAeIbW5NGy6o_1Ks2wPTVsqi/exec";
 const brochureEmailSendUrl = "https://script.google.com/macros/s/AKfycbzQvm4KYNm9qkTeXXUzTYbuQlL-6aU5FdIGO172ovZZ-HVZfqxALkoY_vhDiguV4qHdAQ/exec";
 const brochureEmailCc = "ralph@jakobovgroup.com";
@@ -2011,7 +2011,9 @@ async function syncSocialPostsFromSheet() {
   const result = await response.json();
   if (!response.ok || !result.ok) throw new Error(result.error || "Social post sync failed.");
 
-  const sheetPosts = (result.rows || []).map(mapSocialSheetRow);
+  const sheetPosts = (result.rows || [])
+    .map(mapSocialSheetRow)
+    .filter((post) => post.id && (post.propertyAddress || post.mlsNumber || post.agentName || post.sourceEmailId));
   setSocialPostPayloadPreview(null);
   const localOnlyPosts = state.socialPosts.filter((post) => String(post.id || "").startsWith("LOCAL-"));
   state.socialPosts = [...sheetPosts, ...localOnlyPosts];
