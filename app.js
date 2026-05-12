@@ -777,6 +777,10 @@ function setDailyState() {
   });
   state.agents.forEach((agent) => {
     if (agent.note?.startsWith("Pod lead:")) agent.note = "";
+    if (typeof agent.instagram !== "string") agent.instagram = agent.note?.trim().startsWith("@") ? agent.note.trim() : "";
+    if (typeof agent.email !== "string") agent.email = "";
+    if (typeof agent.phone !== "string") agent.phone = "";
+    if (typeof agent.status !== "string" || !agent.status) agent.status = "Active";
   });
   if (!Array.isArray(state.attendanceSessions)) state.attendanceSessions = [];
   if (!Array.isArray(state.videoTasks)) state.videoTasks = seedVideoTasks;
@@ -1694,7 +1698,21 @@ function renderAgentRoster() {
       <tr>
         <td>
           <strong>${escapeHTML(agent.name)}</strong>
-          <span>${escapeHTML(agent.note || "No note added.")}</span>
+          <span>${escapeHTML(agent.note || "Roster contact")}</span>
+        </td>
+        <td>
+          <input data-agent-field="instagram" data-agent-id="${escapeHTML(agent.id)}" value="${escapeHTML(agent.instagram || "")}" placeholder="@handle" aria-label="${escapeHTML(agent.name)} IG handle">
+        </td>
+        <td>
+          <input data-agent-field="email" data-agent-id="${escapeHTML(agent.id)}" value="${escapeHTML(agent.email || "")}" placeholder="email@example.com" aria-label="${escapeHTML(agent.name)} email address">
+        </td>
+        <td>
+          <input data-agent-field="phone" data-agent-id="${escapeHTML(agent.id)}" value="${escapeHTML(agent.phone || "")}" placeholder="Phone" aria-label="${escapeHTML(agent.name)} phone number">
+        </td>
+        <td>
+          <select data-agent-field="status" data-agent-id="${escapeHTML(agent.id)}" aria-label="${escapeHTML(agent.name)} status">
+            ${["Active", "Inactive", "Needs Info"].map((status) => `<option value="${status}" ${agent.status === status ? "selected" : ""}>${status}</option>`).join("")}
+          </select>
         </td>
         <td>
           <button data-agent-delete="${escapeHTML(agent.id)}" type="button" class="quiet danger-button">Delete</button>
@@ -1706,6 +1724,10 @@ function renderAgentRoster() {
       <thead>
         <tr>
           <th>Agent</th>
+          <th>IG Handle</th>
+          <th>Email Address</th>
+          <th>Phone Number</th>
+          <th>Status</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -1928,7 +1950,21 @@ function brandImageHTML(src, alt, className = "", fallbackText = "") {
 function getAgentProfile(agentName) {
   const profiles = state.agentProfiles || {};
   const key = String(agentName || "").trim().toLowerCase();
-  return profiles[key] || {};
+  const rosterAgent = (state.agents || []).find((agent) => agent.name.trim().toLowerCase() === key);
+  const savedProfile = profiles[key] || {};
+  return {
+    ...savedProfile,
+    instagram: savedProfile.instagram || rosterAgent?.instagram || "",
+    email: savedProfile.email || rosterAgent?.email || "",
+    phone: savedProfile.phone || rosterAgent?.phone || "",
+    status: savedProfile.status || rosterAgent?.status || ""
+  };
+}
+
+function normalizeInstagramHandle(value) {
+  const handle = String(value || "").trim();
+  if (!handle) return "";
+  return handle.startsWith("@") ? handle : `@${handle}`;
 }
 
 function getAgentWarnings(post) {
@@ -3887,7 +3923,11 @@ document.addEventListener("DOMContentLoaded", () => {
     state.agents.push({
       id: crypto.randomUUID ? crypto.randomUUID() : `agent-${Date.now()}`,
       name,
-      note: document.querySelector("#agentNote").value.trim()
+      instagram: normalizeInstagramHandle(document.querySelector("#agentInstagram").value),
+      email: document.querySelector("#agentEmail").value.trim(),
+      phone: document.querySelector("#agentPhone").value.trim(),
+      status: document.querySelector("#agentStatus").value,
+      note: ""
     });
     event.target.reset();
     saveState();
@@ -3943,6 +3983,18 @@ document.addEventListener("DOMContentLoaded", () => {
     renderAttendance();
     queueAttendanceSync();
     showToast(`${agent.name} removed from roster.`);
+  });
+
+  document.querySelector("#agentRoster")?.addEventListener("change", (event) => {
+    const field = event.target.closest("[data-agent-field]");
+    if (!field) return;
+    const agent = state.agents.find((item) => item.id === field.dataset.agentId);
+    if (!agent) return;
+    const fieldName = field.dataset.agentField;
+    agent[fieldName] = fieldName === "instagram" ? normalizeInstagramHandle(field.value) : field.value.trim();
+    saveState();
+    renderAgentRoster();
+    showToast("Agent roster updated.");
   });
 
   document.querySelector("#categoryFilter").addEventListener("change", renderTasks);

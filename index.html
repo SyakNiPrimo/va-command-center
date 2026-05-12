@@ -333,26 +333,43 @@
         <p class="small-muted">Google Sheet: <a href="https://docs.google.com/spreadsheets/d/1nmdNyzfdG7V3guU7BmghtTaujAun7TDkRyK5WefTJ04/edit?usp=sharing" target="_blank" rel="noreferrer">Task Tracker</a></p>
         <p class="small-muted" id="attendanceSyncStatus">Sync status: local only until the Apps Script URL is added.</p>
       </div>
-      <form id="agentForm" class="task-form compact-form compact-hidden">
+      <form id="agentForm" class="task-form compact-form agent-form compact-hidden">
         <label>
           Agent name
           <input id="agentName" required placeholder="Example: Ralph">
         </label>
         <label>
-          Instagram or note
-          <input id="agentNote" placeholder="@handle, team role, or note">
+          IG handle
+          <input id="agentInstagram" placeholder="@agenthandle">
+        </label>
+        <label>
+          Email address
+          <input id="agentEmail" type="email" placeholder="agent@example.com">
+        </label>
+        <label>
+          Phone number
+          <input id="agentPhone" placeholder="(480) 000-0000">
+        </label>
+        <label>
+          Status
+          <select id="agentStatus">
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+            <option value="Needs Info">Needs Info</option>
+          </select>
         </label>
         <button type="submit">Add Agent</button>
       </form>
-      <article class="panel flat agent-roster-panel">
-        <div class="section-head">
+      <details class="panel flat agent-roster-panel" open>
+        <summary class="agent-roster-summary">
           <div>
             <h3>Agent Roster</h3>
-            <p class="section-note">Add or remove agents from the attendance table.</p>
+            <p class="section-note">Add, update, remove, or collapse agent contact details for attendance and listing workflows.</p>
           </div>
-        </div>
+          <span class="roster-toggle-label">Minimize / Maximize</span>
+        </summary>
         <div id="agentRoster" class="table-wrap"></div>
-      </article>
+      </details>
       <div id="attendanceSessions" class="table-wrap"></div>
     </section>
 

@@ -673,6 +673,10 @@ main,
   margin-bottom: 10px;
 }
 
+.agent-form {
+  grid-template-columns: repeat(5, minmax(150px, 1fr)) auto;
+}
+
 .tabs {
   display: flex;
   gap: 6px;
@@ -1206,8 +1210,51 @@ main,
   margin: 10px 0;
 }
 
+.agent-roster-summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  cursor: pointer;
+  list-style: none;
+  padding: 0;
+}
+
+.agent-roster-summary::-webkit-details-marker {
+  display: none;
+}
+
+.roster-toggle-label {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  padding: 0.35rem 0.7rem;
+  white-space: nowrap;
+}
+
+.agent-roster-panel:not([open]) .roster-toggle-label {
+  color: var(--accent-dark);
+  border-color: rgba(181, 151, 87, 0.35);
+  background: rgba(181, 151, 87, 0.11);
+}
+
 .agent-roster-table {
-  min-width: 520px;
+  min-width: 900px;
+  margin-top: 0.8rem;
+}
+
+.agent-roster-table input,
+.agent-roster-table select {
+  min-width: 140px;
+  width: 100%;
+  border-radius: 10px;
+  padding: 0.5rem 0.55rem;
+}
+
+.agent-roster-table td:first-child {
+  min-width: 190px;
 }
 
 .danger-button {
