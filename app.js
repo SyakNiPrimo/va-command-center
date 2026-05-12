@@ -388,6 +388,7 @@ const seedAgents = [
   { id: "agent-angela-sinagoga", name: "Angela Sinagoga", note: "" },
   { id: "agent-brandon-uribe", name: "Brandon Uribe", note: "" },
   { id: "agent-catherine-gurevich", name: "Catherine Gurevich", note: "" },
+  { id: "agent-giselle-gutierrez", name: "Giselle Gutierrez", note: "" },
   { id: "agent-james-mandavia", name: "James Mandavia", note: "" },
   { id: "agent-joe-babadzhanov", name: "Joe Babadzhanov", note: "" },
   { id: "agent-katelyn-bullan", name: "Katelyn Bullan", note: "" },
@@ -1679,6 +1680,40 @@ function queueAttendanceSync() {
   }, 600);
 }
 
+function renderAgentRoster() {
+  const container = document.querySelector("#agentRoster");
+  if (!container) return;
+  if (!state.agents.length) {
+    container.innerHTML = `<div class="empty-state">No agents added yet.</div>`;
+    return;
+  }
+  const rows = state.agents
+    .slice()
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .map((agent) => `
+      <tr>
+        <td>
+          <strong>${escapeHTML(agent.name)}</strong>
+          <span>${escapeHTML(agent.note || "No note added.")}</span>
+        </td>
+        <td>
+          <button data-agent-delete="${escapeHTML(agent.id)}" type="button" class="quiet danger-button">Delete</button>
+        </td>
+      </tr>
+    `).join("");
+  container.innerHTML = `
+    <table class="work-table agent-roster-table">
+      <thead>
+        <tr>
+          <th>Agent</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>${rows}</tbody>
+    </table>
+  `;
+}
+
 function renderAttendance() {
   const dateInput = document.querySelector("#attendanceDate");
   if (dateInput && !dateInput.value) dateInput.value = todayArizonaISO();
@@ -1696,6 +1731,7 @@ function renderAttendance() {
       ? "Sync status: ready to update Task Tracker."
       : "Sync status: local only until the Apps Script URL is added.";
   }
+  renderAgentRoster();
 
   if (!session) {
     sessions.innerHTML = `<div class="empty-state">No attendance session for ${escapeHTML(selectedDate)}. Click Load Date to start this day.</div>`;
@@ -3841,9 +3877,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.querySelector("#agentForm").addEventListener("submit", (event) => {
     event.preventDefault();
+    const name = document.querySelector("#agentName").value.trim();
+    if (!name) return;
+    const exists = state.agents.some((agent) => agent.name.trim().toLowerCase() === name.toLowerCase());
+    if (exists) {
+      showToast("That agent is already in the roster.");
+      return;
+    }
     state.agents.push({
       id: crypto.randomUUID ? crypto.randomUUID() : `agent-${Date.now()}`,
-      name: document.querySelector("#agentName").value.trim(),
+      name,
       note: document.querySelector("#agentNote").value.trim()
     });
     event.target.reset();
@@ -3884,6 +3927,22 @@ document.addEventListener("DOMContentLoaded", () => {
     saveState();
     renderAttendance();
     queueAttendanceSync();
+  });
+
+  document.querySelector("#agentRoster")?.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-agent-delete]");
+    if (!button) return;
+    const agent = state.agents.find((item) => item.id === button.dataset.agentDelete);
+    if (!agent) return;
+    if (!window.confirm(`Delete ${agent.name} from the agent roster? Attendance records for this agent will also be removed from local sessions.`)) return;
+    state.agents = state.agents.filter((item) => item.id !== agent.id);
+    state.attendanceSessions.forEach((session) => {
+      session.records = session.records.filter((record) => record.agentId !== agent.id);
+    });
+    saveState();
+    renderAttendance();
+    queueAttendanceSync();
+    showToast(`${agent.name} removed from roster.`);
   });
 
   document.querySelector("#categoryFilter").addEventListener("change", renderTasks);

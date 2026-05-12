@@ -1202,6 +1202,18 @@ main,
   align-self: center;
 }
 
+.agent-roster-panel {
+  margin: 10px 0;
+}
+
+.agent-roster-table {
+  min-width: 520px;
+}
+
+.danger-button {
+  color: #991b1b;
+}
+
 .attendance-table {
   min-width: 620px;
 }
