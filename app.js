@@ -1640,6 +1640,57 @@ function getAttendanceSyncPayload() {
   };
 }
 
+function mapAgentRosterSheetAgent(agent) {
+  return {
+    id: crypto.randomUUID ? crypto.randomUUID() : `agent-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+    name: String(agent.name || agent["Agent Name"] || "").trim(),
+    instagram: normalizeInstagramHandle(agent.instagram || agent["IG Handle"] || agent["Instagram Handle"] || ""),
+    email: String(agent.email || agent["Email Address"] || agent.Email || "").trim(),
+    phone: String(agent.phone || agent["Phone Number"] || agent.Phone || "").trim(),
+    status: String(agent.status || agent.Status || "Active").trim() || "Active",
+    note: ""
+  };
+}
+
+async function syncAgentRosterFromSheet() {
+  const status = document.querySelector("#attendanceSyncStatus");
+  if (!attendanceSyncUrl) {
+    if (status) status.textContent = "Agent roster sync needs the Attendance Apps Script URL first.";
+    showToast("Attendance Apps Script URL is missing.");
+    return;
+  }
+
+  if (status) status.textContent = "Sync status: reading Agent Roster tab...";
+  const url = new URL(attendanceSyncUrl);
+  url.searchParams.set("action", "agentRoster");
+  const response = await fetch(url.toString());
+  const result = await response.json().catch(() => null);
+  if (!response.ok || !result?.ok) throw new Error(result?.error || "Agent Roster sync failed.");
+
+  const sheetAgents = (result.agents || []).map(mapAgentRosterSheetAgent).filter((agent) => agent.name);
+  let added = 0;
+  let updated = 0;
+
+  sheetAgents.forEach((sheetAgent) => {
+    const existing = state.agents.find((agent) => agent.name.trim().toLowerCase() === sheetAgent.name.toLowerCase());
+    if (existing) {
+      existing.instagram = sheetAgent.instagram || existing.instagram || "";
+      existing.email = sheetAgent.email || existing.email || "";
+      existing.phone = sheetAgent.phone || existing.phone || "";
+      existing.status = sheetAgent.status || existing.status || "Active";
+      updated += 1;
+      return;
+    }
+    state.agents.push(sheetAgent);
+    added += 1;
+  });
+
+  saveState();
+  renderAttendance();
+  if (status) status.textContent = `Sync status: Agent Roster synced. ${added} added, ${updated} updated.`;
+  showToast(`Agent Roster synced: ${added} added, ${updated} updated.`);
+}
+
 async function syncAttendanceToSheet() {
   const payload = getAttendanceSyncPayload();
   if (!payload) {
@@ -3946,6 +3997,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.querySelector("#syncAttendanceBtn").addEventListener("click", () => {
     syncAttendanceToSheet().catch(() => showToast("Attendance sync failed."));
+  });
+
+  document.querySelector("#syncAgentRosterBtn")?.addEventListener("click", () => {
+    syncAgentRosterFromSheet().catch((error) => {
+      const status = document.querySelector("#attendanceSyncStatus");
+      if (status) status.textContent = `Sync status: Agent Roster sync failed. ${error.message}`;
+      showToast("Agent Roster sync failed.");
+    });
   });
 
   document.querySelector("#attendanceSessions").addEventListener("click", (event) => {

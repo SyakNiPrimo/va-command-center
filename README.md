@@ -227,7 +227,8 @@ Fields:
 - Attendance session date in Arizona time.
 - Meeting type.
 - Meeting time.
-- Agent roster.
+- Agent roster. The roster starts minimized by default so the attendance table stays easy to scan.
+- Agent roster contact fields: Agent Name, IG Handle, Email Address, Phone Number, and Status.
 - Zoom checkbox: checked means the agent was in the Zoom meeting.
 - Office checkbox: checked means the agent attended in office.
 - Optional agent notes.
@@ -237,6 +238,16 @@ Google Sheet link:
 `https://docs.google.com/spreadsheets/d/1nmdNyzfdG7V3guU7BmghtTaujAun7TDkRyK5WefTJ04/edit?usp=sharing`
 
 The dashboard can update the spreadsheet after the Apps Script sync URL is added to `attendanceSyncUrl` in `app.js`.
+
+The same Apps Script can also read the `Agent Roster` tab. After redeploying `attendance-sync-apps-script.js`, click **Sync Agent Roster** in the Attendance page to merge rows from the Task Tracker `Agent Roster` sheet into the app roster. Matching agents are updated by name and new agents are added without deleting local attendance history.
+
+Expected `Agent Roster` columns:
+
+- Agent Name
+- IG Handle
+- Email Address
+- Phone Number
+- Status
 
 Current detected Task Tracker attendance layout:
 

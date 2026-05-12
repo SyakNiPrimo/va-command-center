@@ -1,5 +1,27 @@
 const SPREADSHEET_ID = "1nmdNyzfdG7V3guU7BmghtTaujAun7TDkRyK5WefTJ04";
 const ATTENDANCE_SHEET = "Attendance";
+const AGENT_ROSTER_SHEET = "Agent Roster";
+
+function doGet(event) {
+  let result;
+  try {
+    const action = String(event?.parameter?.action || event?.parameter?.type || "").trim();
+    if (action === "agentRoster") {
+      result = getAgentRoster();
+    } else {
+      result = {
+        ok: true,
+        message: "Attendance sync endpoint is live. Use ?action=agentRoster to read the Agent Roster tab."
+      };
+    }
+  } catch (error) {
+    result = { ok: false, error: error.message };
+  }
+
+  return ContentService
+    .createTextOutput(JSON.stringify(result))
+    .setMimeType(ContentService.MimeType.JSON);
+}
 
 function doPost(event) {
   let result;
@@ -13,6 +35,73 @@ function doPost(event) {
   return ContentService
     .createTextOutput(JSON.stringify(result))
     .setMimeType(ContentService.MimeType.JSON);
+}
+
+function getAgentRoster() {
+  const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(AGENT_ROSTER_SHEET);
+  if (!sheet) throw new Error(`Missing sheet tab: ${AGENT_ROSTER_SHEET}`);
+
+  const values = sheet.getDataRange().getValues();
+  if (!values.length) {
+    return { ok: true, sheetName: AGENT_ROSTER_SHEET, count: 0, agents: [] };
+  }
+
+  const headers = values[0].map((header) => String(header || "").trim());
+  const columnMap = getRosterColumnMap(headers);
+  const agents = [];
+
+  for (let row = 1; row < values.length; row += 1) {
+    const source = values[row];
+    const name = getRosterCell(source, columnMap.name);
+    if (!name) continue;
+    agents.push({
+      name,
+      instagram: normalizeInstagramHandle(getRosterCell(source, columnMap.instagram)),
+      email: getRosterCell(source, columnMap.email),
+      phone: getRosterCell(source, columnMap.phone),
+      status: getRosterCell(source, columnMap.status) || "Active"
+    });
+  }
+
+  return {
+    ok: true,
+    sheetName: AGENT_ROSTER_SHEET,
+    count: agents.length,
+    agents
+  };
+}
+
+function getRosterColumnMap(headers) {
+  return {
+    name: findHeader(headers, ["agent name", "agent", "name"]),
+    instagram: findHeader(headers, ["ig handle", "instagram handle", "instagram", "ig"]),
+    email: findHeader(headers, ["email address", "email"]),
+    phone: findHeader(headers, ["phone number", "phone", "mobile"]),
+    status: findHeader(headers, ["status"])
+  };
+}
+
+function findHeader(headers, aliases) {
+  const normalizedHeaders = headers.map((header) => normalizeHeader(header));
+  for (let index = 0; index < normalizedHeaders.length; index += 1) {
+    if (aliases.some((alias) => normalizedHeaders[index] === normalizeHeader(alias))) return index;
+  }
+  return -1;
+}
+
+function getRosterCell(row, index) {
+  if (index < 0) return "";
+  return String(row[index] || "").trim();
+}
+
+function normalizeHeader(value) {
+  return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function normalizeInstagramHandle(value) {
+  const handle = String(value || "").trim();
+  if (!handle) return "";
+  return handle.startsWith("@") ? handle : `@${handle}`;
 }
 
 function syncZoomAttendance(payload) {
