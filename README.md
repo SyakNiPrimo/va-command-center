@@ -532,6 +532,26 @@ Use it:
 
 To test before Friday, temporarily change your computer date to a Friday, open the dashboard, then change it back after confirming the card says `Due Today`.
 
+## Monthly Payslip Generator
+
+The Payments page includes a **Payslip Generator** for completed months only.
+
+- Scope: one payslip per month.
+- Rule: only previous months can be generated. Current and future months are rejected.
+- Storage: localStorage, keyed by month.
+- Defaults:
+  - Total Hours: `160`
+  - Rate Per Hour: `$5`
+  - Total Amount: auto calculated as hours times rate.
+
+Use it:
+
+1. Open Payments.
+2. Select a previous month.
+3. Review Total Hours, Rate Per Hour, Status, and Work Summary.
+4. Click **Generate Payslip**.
+5. Click **Copy Payslip** or **Mark Sent**.
+
 ## Weekly Arizona Trivia Post Workflow
 
 The Social tab includes **Weekly Arizona Trivia Post** for The Jakobov Group.

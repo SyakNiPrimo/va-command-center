@@ -173,6 +173,7 @@ const agentHeadshotAliases = {
   joe: ["Joe.jpeg"]
 };
 const defaultPaymentSummary = "Work includes administrative support, coordination, updates, listing and social media support, automation/app updates, and other assigned VA tasks throughout the week.";
+const defaultMonthlyPayslipSummary = "Work includes administrative support, coordination, listing and social media support, email and team communication, attendance tracking, compliance support, automation updates, and other assigned VA tasks throughout the month.";
 const triviaChecklistItems = [
   "Choose topic",
   "Review Slide 1",
@@ -483,6 +484,38 @@ function getCurrentPaymentKey(date = new Date()) {
   return addDaysISO(weekStart, 4);
 }
 
+function getArizonaYearMonth(date = new Date()) {
+  const parts = getArizonaParts(date);
+  return `${parts.year}-${String(parts.month).padStart(2, "0")}`;
+}
+
+function getPreviousArizonaMonthKey(date = new Date()) {
+  const parts = getArizonaParts(date);
+  const previous = new Date(Date.UTC(parts.year, parts.month - 2, 1));
+  return `${previous.getUTCFullYear()}-${String(previous.getUTCMonth() + 1).padStart(2, "0")}`;
+}
+
+function isPreviousMonthKey(monthKey) {
+  return /^\d{4}-\d{2}$/.test(monthKey) && monthKey < getArizonaYearMonth();
+}
+
+function getMonthDateRange(monthKey) {
+  const [year, month] = monthKey.split("-").map(Number);
+  const startDate = `${monthKey}-01`;
+  const end = new Date(Date.UTC(year, month, 0));
+  const endDate = `${year}-${String(month).padStart(2, "0")}-${String(end.getUTCDate()).padStart(2, "0")}`;
+  return { startDate, endDate };
+}
+
+function formatMonthLabel(monthKey) {
+  const [year, month] = monthKey.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString(undefined, {
+    timeZone: "UTC",
+    month: "long",
+    year: "numeric"
+  });
+}
+
 function isFridayArizona(date = new Date()) {
   return getArizonaWeekday(date) === "Friday";
 }
@@ -504,6 +537,7 @@ function loadState() {
     agentProfiles: {},
     videoTasks: seedVideoTasks,
     paymentRequests: {},
+    payslips: {},
     weeklyTriviaPosts: {},
     triviaHistory: [],
     login: {
@@ -756,6 +790,7 @@ function setDailyState() {
   if (!Array.isArray(state.socialPosts)) state.socialPosts = [];
   if (!state.agentProfiles) state.agentProfiles = {};
   if (!state.paymentRequests) state.paymentRequests = {};
+  if (!state.payslips) state.payslips = {};
   if (!state.weeklyTriviaPosts) state.weeklyTriviaPosts = {};
   if (!Array.isArray(state.triviaHistory)) state.triviaHistory = [];
   if (!state.login) state.login = { enabled: true, currentUser: "", lastLoginAt: "", lastLogoutAt: "", sessionType: "", provider: "", supabaseUserId: "" };
@@ -943,6 +978,101 @@ function renderPaymentRequest() {
 function updatePaymentTotalPreview() {
   const total = calculatePaymentTotal(document.querySelector("#paymentHours")?.value, document.querySelector("#paymentRate")?.value);
   const field = document.querySelector("#paymentTotal");
+  if (field) field.value = `$${total}`;
+}
+
+function getSelectedPayslipMonth() {
+  const field = document.querySelector("#payslipMonth");
+  const selected = field?.value || getPreviousArizonaMonthKey();
+  return isPreviousMonthKey(selected) ? selected : getPreviousArizonaMonthKey();
+}
+
+function getPayslipForMonth(monthKey = getSelectedPayslipMonth()) {
+  const safeMonth = isPreviousMonthKey(monthKey) ? monthKey : getPreviousArizonaMonthKey();
+  if (!state.payslips[safeMonth]) {
+    const range = getMonthDateRange(safeMonth);
+    state.payslips[safeMonth] = {
+      monthKey: safeMonth,
+      startDate: range.startDate,
+      endDate: range.endDate,
+      totalHours: 160,
+      ratePerHour: 5,
+      totalAmount: 800,
+      workSummary: defaultMonthlyPayslipSummary,
+      status: "Draft",
+      generatedAt: "",
+      sentAt: "",
+      message: ""
+    };
+  }
+  return state.payslips[safeMonth];
+}
+
+function buildPayslipMessage(payslip) {
+  const total = calculatePaymentTotal(payslip.totalHours, payslip.ratePerHour);
+  const monthLabel = formatMonthLabel(payslip.monthKey);
+  return `Payslip | ${monthLabel}
+
+Name: Ben Tiaga
+Role: Virtual Assistant
+Team: Ari and The Jakobov Group
+Coverage period: ${payslip.startDate} to ${payslip.endDate}
+
+Total hours: ${payslip.totalHours} hours
+Rate: $${payslip.ratePerHour}/hour
+Total amount: $${total}
+
+Work summary:
+${payslip.workSummary || defaultMonthlyPayslipSummary}
+
+Generated: ${todayArizonaISO()}`;
+}
+
+function collectPayslipFromForm() {
+  const requestedMonth = document.querySelector("#payslipMonth")?.value || getPreviousArizonaMonthKey();
+  if (!isPreviousMonthKey(requestedMonth)) {
+    showToast("Payslips can only be generated for previous months.");
+  }
+  const monthKey = isPreviousMonthKey(requestedMonth) ? requestedMonth : getPreviousArizonaMonthKey();
+  const payslip = getPayslipForMonth(monthKey);
+  const range = getMonthDateRange(monthKey);
+  payslip.monthKey = monthKey;
+  payslip.startDate = range.startDate;
+  payslip.endDate = range.endDate;
+  payslip.totalHours = Number(document.querySelector("#payslipHours")?.value || 0);
+  payslip.ratePerHour = Number(document.querySelector("#payslipRate")?.value || 0);
+  payslip.totalAmount = calculatePaymentTotal(payslip.totalHours, payslip.ratePerHour);
+  payslip.workSummary = document.querySelector("#payslipSummary")?.value.trim() || defaultMonthlyPayslipSummary;
+  payslip.status = document.querySelector("#payslipGeneratedStatus")?.value || payslip.status || "Draft";
+  payslip.message = buildPayslipMessage(payslip);
+  return payslip;
+}
+
+function renderPayslipGenerator() {
+  const card = document.querySelector("#payslipGeneratorCard");
+  if (!card) return;
+  const previousMonth = getPreviousArizonaMonthKey();
+  const monthField = document.querySelector("#payslipMonth");
+  if (monthField) {
+    monthField.max = previousMonth;
+    if (!monthField.value || !isPreviousMonthKey(monthField.value)) monthField.value = previousMonth;
+  }
+  const payslip = getPayslipForMonth(monthField?.value || previousMonth);
+  document.querySelector("#payslipStatus").textContent = payslip.status || "Draft";
+  document.querySelector("#payslipReminderText").textContent = `Only previous months can be generated. Latest available month: ${formatMonthLabel(previousMonth)}.`;
+  document.querySelector("#payslipHours").value = payslip.totalHours;
+  document.querySelector("#payslipRate").value = payslip.ratePerHour;
+  document.querySelector("#payslipTotal").value = `$${calculatePaymentTotal(payslip.totalHours, payslip.ratePerHour)}`;
+  document.querySelector("#payslipGeneratedStatus").value = payslip.status || "Draft";
+  document.querySelector("#payslipSummary").value = payslip.workSummary || defaultMonthlyPayslipSummary;
+  document.querySelector("#payslipOutput").value = payslip.message || "";
+  document.querySelector("#markPayslipSentBtn").classList.toggle("done", payslip.status === "Sent");
+  document.querySelector("#markPayslipSentBtn").textContent = payslip.status === "Sent" ? "Sent" : "Mark Sent";
+}
+
+function updatePayslipTotalPreview() {
+  const total = calculatePaymentTotal(document.querySelector("#payslipHours")?.value, document.querySelector("#payslipRate")?.value);
+  const field = document.querySelector("#payslipTotal");
   if (field) field.value = `$${total}`;
 }
 
@@ -3482,6 +3612,7 @@ function renderAll() {
   renderMeeting();
   renderFocus();
   renderPaymentRequest();
+  renderPayslipGenerator();
   renderDashboardKpis();
   renderRecurringOverview();
   renderTasks();
@@ -3860,6 +3991,49 @@ document.addEventListener("DOMContentLoaded", () => {
     renderPaymentRequest();
     renderFocus();
     showToast("Payment request marked sent for this Friday.");
+  });
+
+  ["#payslipHours", "#payslipRate"].forEach((selector) => {
+    document.querySelector(selector)?.addEventListener("input", updatePayslipTotalPreview);
+  });
+  ["#payslipMonth", "#payslipHours", "#payslipRate", "#payslipSummary", "#payslipGeneratedStatus"].forEach((selector) => {
+    document.querySelector(selector)?.addEventListener("change", () => {
+      collectPayslipFromForm();
+      saveState();
+      renderPayslipGenerator();
+    });
+  });
+  document.querySelector("#generatePayslipBtn")?.addEventListener("click", () => {
+    const requestedMonth = document.querySelector("#payslipMonth")?.value;
+    if (!isPreviousMonthKey(requestedMonth)) {
+      showToast("Payslips can only be generated for previous months.");
+      renderPayslipGenerator();
+      return;
+    }
+    const payslip = collectPayslipFromForm();
+    payslip.status = "Generated";
+    payslip.generatedAt = new Date().toISOString();
+    payslip.message = buildPayslipMessage(payslip);
+    saveState();
+    renderPayslipGenerator();
+    document.querySelector("#payslipOutput").value = payslip.message;
+    showToast("Monthly payslip generated.");
+  });
+  document.querySelector("#copyPayslipBtn")?.addEventListener("click", () => {
+    const payslip = collectPayslipFromForm();
+    if (!payslip.message) payslip.message = buildPayslipMessage(payslip);
+    saveState();
+    renderPayslipGenerator();
+    copyText(payslip.message);
+  });
+  document.querySelector("#markPayslipSentBtn")?.addEventListener("click", () => {
+    const payslip = collectPayslipFromForm();
+    payslip.status = "Sent";
+    payslip.sentAt = new Date().toISOString();
+    if (!payslip.message) payslip.message = buildPayslipMessage(payslip);
+    saveState();
+    renderPayslipGenerator();
+    showToast(`${formatMonthLabel(payslip.monthKey)} payslip marked sent.`);
   });
 
   document.querySelector("#taskForm").addEventListener("submit", (event) => {

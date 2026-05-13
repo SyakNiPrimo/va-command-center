@@ -316,6 +316,15 @@ main,
   margin-top: 10px;
 }
 
+.payslip-form {
+  grid-template-columns: repeat(5, minmax(140px, 1fr));
+  margin-top: 10px;
+}
+
+.payslip-form .wide {
+  grid-column: 1 / -1;
+}
+
 .topbar {
   display: flex;
   align-items: center;
