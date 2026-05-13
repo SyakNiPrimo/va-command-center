@@ -550,7 +550,14 @@ Use it:
 2. Select a previous month.
 3. Review Total Hours, Rate Per Hour, Status, and Work Summary.
 4. Click **Generate Payslip**.
-5. Click **Copy Payslip** or **Mark Sent**.
+5. Click **Download PDF**, **Copy Payslip**, or **Mark Sent**.
+
+PDF behavior:
+
+- The app loads `jsPDF` from a CDN and downloads a branded one page PDF.
+- If the PDF library is blocked, the app opens a printable payslip view so you can use the browser's **Save as PDF** option.
+
+Vercel note: the app can be hosted on Vercel as a static app now. Vercel is also a good future home for secure serverless routes for PDF generation, OpenAI calls, Canva workflows, and email actions.
 
 ## Weekly Arizona Trivia Post Workflow
 

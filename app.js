@@ -1028,6 +1028,133 @@ ${payslip.workSummary || defaultMonthlyPayslipSummary}
 Generated: ${todayArizonaISO()}`;
 }
 
+function getPayslipPdfFileName(payslip) {
+  return `Ben-Tiaga-Payslip-${payslip.monthKey}.pdf`;
+}
+
+function openPrintablePayslip(payslip) {
+  const total = calculatePaymentTotal(payslip.totalHours, payslip.ratePerHour);
+  const monthLabel = formatMonthLabel(payslip.monthKey);
+  const printWindow = window.open("", "_blank", "noopener,noreferrer");
+  if (!printWindow) {
+    showToast("Popup blocked. Allow popups or use Copy Payslip.");
+    return;
+  }
+  printWindow.document.write(`<!doctype html>
+    <html>
+      <head>
+        <title>${escapeHTML(getPayslipPdfFileName(payslip))}</title>
+        <style>
+          body { font-family: Arial, sans-serif; color: #111827; margin: 40px; }
+          .eyebrow { color: #9a7a2f; font-size: 12px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase; }
+          h1 { margin: 6px 0 2px; font-size: 30px; }
+          .muted { color: #5f6673; }
+          .box { border: 1px solid #ded7c3; border-radius: 12px; padding: 18px; margin: 20px 0; }
+          .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+          .label { color: #6d6759; font-size: 12px; font-weight: 800; text-transform: uppercase; }
+          .value { font-size: 16px; font-weight: 700; margin-top: 4px; }
+          pre { white-space: pre-wrap; font-family: Arial, sans-serif; line-height: 1.5; }
+          @media print { button { display: none; } body { margin: 24px; } }
+        </style>
+      </head>
+      <body>
+        <p class="eyebrow">The Jakobov Group VA Command Center</p>
+        <h1>Monthly Payslip</h1>
+        <p class="muted">${escapeHTML(monthLabel)} | Ben Tiaga | Virtual Assistant</p>
+        <div class="box grid">
+          <div><div class="label">Coverage Period</div><div class="value">${escapeHTML(payslip.startDate)} to ${escapeHTML(payslip.endDate)}</div></div>
+          <div><div class="label">Status</div><div class="value">${escapeHTML(payslip.status || "Generated")}</div></div>
+          <div><div class="label">Total Hours</div><div class="value">${escapeHTML(String(payslip.totalHours))}</div></div>
+          <div><div class="label">Rate</div><div class="value">$${escapeHTML(String(payslip.ratePerHour))}/hour</div></div>
+          <div><div class="label">Total Amount</div><div class="value">$${escapeHTML(String(total))}</div></div>
+          <div><div class="label">Generated</div><div class="value">${escapeHTML(todayArizonaISO())}</div></div>
+        </div>
+        <div class="box">
+          <div class="label">Work Summary</div>
+          <pre>${escapeHTML(payslip.workSummary || defaultMonthlyPayslipSummary)}</pre>
+        </div>
+        <button onclick="window.print()">Save as PDF</button>
+      </body>
+    </html>`);
+  printWindow.document.close();
+  printWindow.focus();
+  window.setTimeout(() => printWindow.print(), 300);
+}
+
+function downloadPayslipPdf(payslip) {
+  const jsPdf = window.jspdf?.jsPDF;
+  if (!jsPdf) {
+    openPrintablePayslip(payslip);
+    return;
+  }
+
+  const doc = new jsPdf({ unit: "pt", format: "letter" });
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 54;
+  const contentWidth = pageWidth - margin * 2;
+  const total = calculatePaymentTotal(payslip.totalHours, payslip.ratePerHour);
+  const monthLabel = formatMonthLabel(payslip.monthKey);
+  let y = 58;
+
+  doc.setFillColor(17, 17, 17);
+  doc.rect(0, 0, pageWidth, 116, "F");
+  doc.setTextColor(200, 173, 95);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
+  doc.text("THE JAKOBOV GROUP VA COMMAND CENTER", margin, y);
+  y += 28;
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(28);
+  doc.text("Monthly Payslip", margin, y);
+  y += 24;
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  doc.text(`${monthLabel} | Ben Tiaga | Virtual Assistant`, margin, y);
+
+  y = 156;
+  doc.setTextColor(17, 24, 39);
+  doc.setDrawColor(222, 215, 195);
+  doc.roundedRect(margin, y - 20, contentWidth, 126, 8, 8);
+  const leftX = margin + 20;
+  const rightX = margin + contentWidth / 2 + 10;
+  const detailRows = [
+    ["Coverage Period", `${payslip.startDate} to ${payslip.endDate}`],
+    ["Total Hours", `${payslip.totalHours} hours`],
+    ["Rate", `$${payslip.ratePerHour}/hour`],
+    ["Total Amount", `$${total}`],
+    ["Status", payslip.status || "Generated"],
+    ["Generated", todayArizonaISO()]
+  ];
+  detailRows.forEach(([label, value], index) => {
+    const columnX = index % 2 === 0 ? leftX : rightX;
+    const rowY = y + Math.floor(index / 2) * 36;
+    doc.setTextColor(109, 103, 89);
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(8);
+    doc.text(label.toUpperCase(), columnX, rowY);
+    doc.setTextColor(17, 24, 39);
+    doc.setFontSize(12);
+    doc.text(String(value), columnX, rowY + 15);
+  });
+
+  y += 150;
+  doc.setTextColor(109, 103, 89);
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(9);
+  doc.text("WORK SUMMARY", margin, y);
+  y += 20;
+  doc.setTextColor(17, 24, 39);
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(11);
+  const summaryLines = doc.splitTextToSize(payslip.workSummary || defaultMonthlyPayslipSummary, contentWidth);
+  doc.text(summaryLines, margin, y);
+
+  doc.setTextColor(120, 120, 120);
+  doc.setFontSize(9);
+  doc.text("Generated by VA Command Center", margin, 742);
+  doc.save(getPayslipPdfFileName(payslip));
+}
+
 function collectPayslipFromForm() {
   const requestedMonth = document.querySelector("#payslipMonth")?.value || getPreviousArizonaMonthKey();
   if (!isPreviousMonthKey(requestedMonth)) {
@@ -4025,6 +4152,21 @@ document.addEventListener("DOMContentLoaded", () => {
     saveState();
     renderPayslipGenerator();
     copyText(payslip.message);
+  });
+  document.querySelector("#downloadPayslipPdfBtn")?.addEventListener("click", () => {
+    const requestedMonth = document.querySelector("#payslipMonth")?.value;
+    if (!isPreviousMonthKey(requestedMonth)) {
+      showToast("Payslips can only be downloaded for previous months.");
+      renderPayslipGenerator();
+      return;
+    }
+    const payslip = collectPayslipFromForm();
+    payslip.status = payslip.status === "Draft" ? "Generated" : payslip.status;
+    payslip.generatedAt = payslip.generatedAt || new Date().toISOString();
+    payslip.message = buildPayslipMessage(payslip);
+    saveState();
+    renderPayslipGenerator();
+    downloadPayslipPdf(payslip);
   });
   document.querySelector("#markPayslipSentBtn")?.addEventListener("click", () => {
     const payslip = collectPayslipFromForm();

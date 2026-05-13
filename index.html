@@ -283,6 +283,7 @@
         <textarea id="payslipOutput" readonly placeholder="Generate a previous month payslip"></textarea>
         <div class="button-row">
           <button id="generatePayslipBtn" type="button">Generate Payslip</button>
+          <button id="downloadPayslipPdfBtn" type="button">Download PDF</button>
           <button id="copyPayslipBtn" type="button" class="quiet">Copy Payslip</button>
           <button id="markPayslipSentBtn" type="button" class="quiet">Mark Sent</button>
         </div>
@@ -918,6 +919,7 @@
       </form>
     </section>
   </div>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
