@@ -1,0 +1,11 @@
+caption_local.env
+canva-local.env
+canva-token.json
+canva-oauth-state.json
+canva-server*.log
+exports/
+video-frames/
+photo-prep-check.png
+*.log
+.git/
+.vercel/

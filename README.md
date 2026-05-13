@@ -7,12 +7,37 @@ This is a simple local dashboard for daily Virtual Assistant work with Ari and T
 - `index.html` contains the dashboard layout.
 - `styles.css` controls the clean responsive interface.
 - `app.js` contains the task data model, reminder logic, local storage, templates, caption builder, and checklist behavior.
+- `vercel.json` makes the GitHub repo deploy cleanly as a static Vercel app.
+- `.vercelignore` keeps local env files, logs, token files, and generated assets out of Vercel uploads.
 - The Settings tab contains integration helpers, Gmail snapshot items, calendar snapshot items, and branding settings.
 - The app uses a left side navigation menu on desktop with Home, Listings, Trivia, Payments, Tasks, Attendance, Compliance, Reports, Templates, and Settings. On smaller screens, the menu collapses behind a Menu button.
 
+## Vercel Deployment
+
+Use GitHub as the repo source so Vercel deploys automatically from `main`.
+
+1. Open Vercel.
+2. Click **Add New > Project**.
+3. Import the GitHub repo: `SyakNiPrimo/va-command-center`.
+4. Framework preset: **Other**.
+5. Build command: leave blank.
+6. Output directory: leave blank.
+7. Install command: leave blank.
+8. Click **Deploy**.
+
+After this, every push to `main` will redeploy the VA Command Center.
+
+Important notes:
+
+- The app is currently a static frontend on Vercel.
+- Google Sheets, Gmail, attendance, and brochure sending still use the existing Google Apps Script URLs.
+- Supabase Auth and Supabase Edge Functions continue to work from Vercel.
+- Local env files like `caption_local.env` and `canva-local.env` are excluded from deployment.
+- Future upgrade: add Vercel serverless routes for secure PDF generation, OpenAI calls, Canva workflows, and email actions.
+
 ## Branding Assets
 
-The app uses local branding assets so it works on GitHub Pages and locally without external image links.
+The app uses local branding assets so it works on Vercel, GitHub Pages, and locally without external image links.
 
 - Sidebar logo: `assets/branding/jakobov-white.svg`
 - Light background logo: `assets/branding/jakobov-dark.svg`
