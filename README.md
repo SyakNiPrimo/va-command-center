@@ -268,11 +268,13 @@ The same Apps Script can also read the `Agent Roster` tab. After redeploying `at
 
 Expected `Agent Roster` columns:
 
-- Agent Name
+- Name
 - IG Handle
 - Email Address
 - Phone Number
 - Status
+
+The default in-app roster is also prefilled from the current Task Tracker `Agent Roster` tab, so new browser sessions start with agent IG handles, emails, phone numbers, and active status already available.
 
 Current detected Task Tracker attendance layout:
 

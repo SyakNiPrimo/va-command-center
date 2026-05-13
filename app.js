@@ -385,25 +385,26 @@ const seedTasks = [
 ];
 
 const seedAgents = [
-  { id: "agent-alijah-thomas", name: "Alijah Thomas", note: "" },
-  { id: "agent-angela-sinagoga", name: "Angela Sinagoga", note: "" },
-  { id: "agent-brandon-uribe", name: "Brandon Uribe", note: "" },
-  { id: "agent-catherine-gurevich", name: "Catherine Gurevich", note: "" },
-  { id: "agent-giselle-gutierrez", name: "Giselle Gutierrez", note: "" },
-  { id: "agent-james-mandavia", name: "James Mandavia", note: "" },
-  { id: "agent-joe-babadzhanov", name: "Joe Babadzhanov", note: "" },
-  { id: "agent-katelyn-bullan", name: "Katelyn Bullan", note: "" },
-  { id: "agent-katherine-ortmeier", name: "Katherine Ortmeier", note: "" },
-  { id: "agent-kelly-bridges", name: "Kelly Bridges", note: "" },
-  { id: "agent-mauricio-vega", name: "Mauricio Vega", note: "" },
-  { id: "agent-roxy-rodriguez", name: "Roxy Rodriguez", note: "" },
-  { id: "agent-samuel-negreanu", name: "Samuel Negreanu", note: "" },
-  { id: "agent-shayna-moos", name: "Shayna Moos", note: "" },
-  { id: "agent-steele-nash", name: "Steele Nash", note: "" },
-  { id: "agent-stephanie-pieper", name: "Stephanie Pieper", note: "" },
-  { id: "agent-stephen-baugh", name: "Stephen Baugh", note: "" },
-  { id: "agent-svetlana-suleymanov", name: "Svetlana Suleymanov", note: "" },
-  { id: "agent-teddy-kieborz", name: "Teddy Kieborz", note: "" }
+  { id: "agent-ari-jakobov", name: "Ari Jakobov", instagram: "@ari.jakobov", email: "ari@jakobovgroup.com", phone: "(602) 500-9874", status: "Active", note: "" },
+  { id: "agent-alijah-thomas", name: "Alijah Thomas", instagram: "@alijahazrealtor", email: "alijah@jakobovgroup.com", phone: "(480) 589-1885", status: "Active", note: "" },
+  { id: "agent-angela-sinagoga", name: "Angela Sinagoga", instagram: "@azbootsrealtor", email: "angela@jakobovgroup.com", phone: "(480) 231-9888", status: "Active", note: "" },
+  { id: "agent-brandon-uribe", name: "Brandon Uribe", instagram: "@brandonsoldmyhome", email: "brandon@jakobovgroup.com", phone: "(480) 686-3497", status: "Active", note: "" },
+  { id: "agent-catherine-gurevich", name: "Catherine Gurevich", instagram: "@catherine.azrealtor", email: "catherine@jakobovgroup.com", phone: "(480) 717-8557", status: "Active", note: "" },
+  { id: "agent-evelyn-galibova", name: "Evelyn Galibova", instagram: "@evelyngalibov", email: "evelyngalibov@gmail.com", phone: "(602) 384-7540", status: "Active", note: "" },
+  { id: "agent-giselle-gutierrez", name: "Giselle Gutierrez", instagram: "@gisellleneblina", email: "Giselle@jakobovgroup.com", phone: "(602) 803-0276", status: "Active", note: "" },
+  { id: "agent-james-mandavia", name: "James Mandavia", instagram: "@james_mandavia.realtor", email: "james@jakobovgroup.com", phone: "(623) 760-5100", status: "Active", note: "" },
+  { id: "agent-joe-babadzhanov", name: "Joe Babadzhanov", instagram: "@josefbabadzhanov", email: "josef@jakobovgroup.com", phone: "(602) 718-5296", status: "Active", note: "" },
+  { id: "agent-john-ilyayev", name: "John Ilyayev", instagram: "@johnsellsarizona", email: "john@jakobovgroup.com", phone: "(602) 570-8307", status: "Active", note: "" },
+  { id: "agent-katelyn-bullan", name: "Katelyn Bullan", instagram: "@katelynbullan.realtor", email: "katelyn@jakobovgroup.com", phone: "(602) 607-0457", status: "Active", note: "" },
+  { id: "agent-katherine-ortmeier", name: "Katherine Ortmeier", instagram: "@kath_ortmeier", email: "katherine@jakobovgroup.com", phone: "(785) 215-5202", status: "Active", note: "" },
+  { id: "agent-kelly-bridges", name: "Kelly Bridges", instagram: "@kmbridges", email: "kelly@jakobovgroup.com", phone: "(480) 980-7198", status: "Active", note: "" },
+  { id: "agent-roxy-rodriguez", name: "Roxy Rodriguez", instagram: "@roxyazrealtor", email: "roxy@jakobovgroup.com", phone: "(623) 224-7973", status: "Active", note: "" },
+  { id: "agent-samuel-negreanu", name: "Samuel Negreanu", instagram: "@sold.by.samy", email: "samuel@jakobovgroup.com", phone: "(602) 904-3045", status: "Active", note: "" },
+  { id: "agent-shayna-moos", name: "Shayna Moos", instagram: "@shaynanigens", email: "shayna@jakobovgroup.com", phone: "(480) 818-0182", status: "Active", note: "" },
+  { id: "agent-steele-nash", name: "Steele Nash", instagram: "@azrealtorsteele", email: "steele@jakobovgroup.com", phone: "(602) 345-0515", status: "Active", note: "" },
+  { id: "agent-stephanie-pieper", name: "Stephanie Pieper", instagram: "@peppptalk_arizonarealtor", email: "stephanie@jakobovgroup.com", phone: "(602) 391-4408", status: "Active", note: "" },
+  { id: "agent-svetlana-suleymanov", name: "Svetlana Suleymanov", instagram: "@svetlanasuleymanov", email: "Svetlanasuleymanov@gmail.com", phone: "(602) 486-3313", status: "Active", note: "" },
+  { id: "agent-teddy-kieborz", name: "Teddy Kieborz", instagram: "@teddysellsaz", email: "Theodore@jakobovgroup.com", phone: "(602) 383-4007", status: "Active", note: "" }
 ];
 
 const seedVideoTasks = [
@@ -807,8 +808,15 @@ function setDailyState() {
   if (!Array.isArray(state.agents)) state.agents = seedAgents;
   if (state.agents.length <= 2) state.agents = seedAgents;
   seedAgents.forEach((seedAgent) => {
-    const exists = state.agents.some((agent) => agent.id === seedAgent.id || agent.name === seedAgent.name);
-    if (!exists) state.agents.push(seedAgent);
+    const existing = state.agents.find((agent) => agent.id === seedAgent.id || agent.name === seedAgent.name);
+    if (!existing) {
+      state.agents.push(seedAgent);
+      return;
+    }
+    existing.instagram = existing.instagram || seedAgent.instagram || "";
+    existing.email = existing.email || seedAgent.email || "";
+    existing.phone = existing.phone || seedAgent.phone || "";
+    existing.status = existing.status || seedAgent.status || "Active";
   });
   state.agents.forEach((agent) => {
     if (agent.note?.startsWith("Pod lead:")) agent.note = "";
