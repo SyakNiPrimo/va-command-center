@@ -375,14 +375,6 @@ const seedTasks = [
     priority: "High",
     due: "",
     notes: "Check captions, hashtags, brokerage naming, and collaborator limitations."
-  },
-  {
-    title: "Confirm emails needing Ari approval or Kim graphics",
-    category: "Email Tasks",
-    status: "Pending",
-    priority: "Medium",
-    due: todayISO(),
-    notes: "Closed deals, graphics, payments, vendors, Rocket Lister, signage."
   }
 ];
 
@@ -799,6 +791,7 @@ function setDailyState() {
   if (!state.login) state.login = { enabled: true, currentUser: "", lastLoginAt: "", lastLogoutAt: "", sessionType: "", provider: "", supabaseUserId: "" };
   if (!state.supabase) state.supabase = { lastSyncAt: "", lastDirection: "", lastStatus: "Not checked" };
   state.tasks = state.tasks.filter((task) => task.category !== "Follow Up Boss");
+  state.tasks = state.tasks.filter((task) => task.title !== "Confirm emails needing Ari approval or Kim graphics");
   if (state.dailyState.date !== todayArizonaISO()) {
     state.dailyState = { date: todayArizonaISO(), meetingSent: false, whatsappSent: false };
   }
