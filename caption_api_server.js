@@ -5,6 +5,8 @@ const path = require("path");
 const port = Number(process.env.CAPTION_PORT || 8791);
 const apiKey = process.env.OPENAI_API_KEY || "";
 const model = process.env.OPENAI_MODEL || "gpt-4.1-mini";
+const geminiApiKey = process.env.GEMINI_API_KEY || "";
+const geminiModel = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
 function json(res, status, data) {
   res.writeHead(status, {
@@ -124,10 +126,42 @@ function localFallback(body) {
 }
 
 async function generateCaption(body) {
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY is missing. Copy caption_local.env.example to caption_local.env, add OPENAI_API_KEY, then restart the caption server.");
-  }
   const prompt = buildListingCaptionPrompt(body);
+  if (geminiApiKey) {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent`, {
+      method: "POST",
+      headers: {
+        "x-goog-api-key": geminiApiKey,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        contents: [
+          {
+            parts: [{ text: prompt }]
+          }
+        ],
+        generationConfig: {
+          temperature: 0.7
+        }
+      })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error?.message || "Gemini API error");
+    const text = data.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("\n") || "";
+    const caption = extractSection(text, "Caption") || text;
+    return {
+      caption: cleanCaption(caption),
+      missingData: extractSection(text, "Missing Data"),
+      photoPrep: extractSection(text, "Photo Prep"),
+      whatsappHandoff: extractSection(text, "WhatsApp Handoff"),
+      fullOutput: text.trim(),
+      provider: "gemini",
+      fallback: false
+    };
+  }
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY or OPENAI_API_KEY is missing. Add a Gemini API key to caption_local.env or Supabase secrets, then restart or redeploy.");
+  }
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -150,6 +184,7 @@ async function generateCaption(body) {
     photoPrep: extractSection(text, "Photo Prep"),
     whatsappHandoff: extractSection(text, "WhatsApp Handoff"),
     fullOutput: text.trim(),
+    provider: "openai",
     fallback: false
   };
 }
@@ -223,9 +258,10 @@ const server = http.createServer(async (req, res) => {
     if (url.pathname === "/status" || url.pathname === "/health") {
       return json(res, 200, {
         ok: true,
-        configured: Boolean(apiKey),
-        model,
-        message: apiKey ? "Caption server ready." : "OPENAI_API_KEY is missing. Add it to caption_local.env and restart."
+        configured: Boolean(geminiApiKey || apiKey),
+        provider: geminiApiKey ? "gemini" : apiKey ? "openai" : "missing",
+        model: geminiApiKey ? geminiModel : model,
+        message: geminiApiKey || apiKey ? "Caption server ready." : "GEMINI_API_KEY or OPENAI_API_KEY is missing. Add it to caption_local.env and restart."
       });
     }
     if (url.pathname === "/generate-caption" && req.method === "POST") {

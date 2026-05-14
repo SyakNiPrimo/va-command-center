@@ -101,10 +101,50 @@ Deno.serve(async (req) => {
     if (req.method !== "POST") throw new Error("Method not allowed.");
     const apiKey = Deno.env.get("OPENAI_API_KEY");
     const model = Deno.env.get("OPENAI_MODEL") || "gpt-4.1-mini";
-    if (!apiKey) throw new Error("OPENAI_API_KEY is missing in Supabase Edge Function secrets.");
+    const geminiApiKey = Deno.env.get("GEMINI_API_KEY");
+    const geminiModel = Deno.env.get("GEMINI_MODEL") || "gemini-2.5-flash";
 
     const body = await req.json();
     const prompt = buildListingCaptionPrompt(body);
+    if (geminiApiKey) {
+      const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(geminiModel)}:generateContent`, {
+        method: "POST",
+        headers: {
+          "x-goog-api-key": geminiApiKey,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [{ text: prompt }]
+            }
+          ],
+          generationConfig: {
+            temperature: 0.7
+          }
+        })
+      });
+
+      const geminiData = await geminiResponse.json();
+      if (!geminiResponse.ok) throw new Error(geminiData.error?.message || "Gemini API error.");
+      const geminiText = geminiData.candidates?.[0]?.content?.parts?.map((part: any) => part.text || "").join("\n") || "";
+      const geminiCaption = extractSection(geminiText, "Caption") || geminiText;
+
+      return new Response(JSON.stringify({
+        ok: true,
+        caption: cleanCaption(geminiCaption),
+        missingData: extractSection(geminiText, "Missing Data"),
+        photoPrep: extractSection(geminiText, "Photo Prep"),
+        whatsappHandoff: extractSection(geminiText, "WhatsApp Handoff"),
+        fullOutput: geminiText.trim(),
+        provider: "gemini",
+        fallback: false
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    if (!apiKey) throw new Error("GEMINI_API_KEY or OPENAI_API_KEY is missing in Supabase Edge Function secrets.");
 
     const response = await fetch("https://api.openai.com/v1/responses", {
       method: "POST",
@@ -127,6 +167,7 @@ Deno.serve(async (req) => {
       photoPrep: extractSection(text, "Photo Prep"),
       whatsappHandoff: extractSection(text, "WhatsApp Handoff"),
       fullOutput: text.trim(),
+      provider: "openai",
       fallback: false
     }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" }

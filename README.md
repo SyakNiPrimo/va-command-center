@@ -460,15 +460,16 @@ The Social tab also has **Test Email Sync**, which calls the same dry run mode.
 Caption server setup:
 
 1. Copy `caption_local.env.example` to `caption_local.env`.
-2. Add `OPENAI_API_KEY` to `caption_local.env`.
+2. Add `GEMINI_API_KEY` to `caption_local.env`. Gemini is the preferred caption provider.
+3. Optional: add `OPENAI_API_KEY` only if you want OpenAI as a fallback.
 3. Run `run_caption_server.ps1` or double click `start_caption_api_server.cmd`.
 4. Keep the server window open while using **Generate Caption** in the Social tab.
 
-The OpenAI API key is never stored in frontend files.
+Gemini and OpenAI API keys are never stored in frontend files.
 
 Automated Listing GPT style captions:
 
-The **Generate Caption** action in the Listings page uses the same workflow rules as the custom **Listing Caption GPT**, but runs through the OpenAI API via the local caption server or Supabase Edge Function. This means the app can generate the caption directly without opening ChatGPT.
+The **Generate Caption** action in the Listings page uses the same workflow rules as the custom **Listing Caption GPT**, but runs through Gemini or OpenAI via the local caption server or Supabase Edge Function. This means the app can generate the caption directly without opening ChatGPT.
 
 The automated generator reviews:
 
@@ -507,9 +508,9 @@ Paste that file into the custom GPT instructions if you want the GPT itself to p
 
 This is a manual handoff. The app does not expose API keys and does not post to Instagram.
 
-GitHub Pages ChatGPT setup:
+GitHub Pages and Vercel AI setup:
 
-GitHub Pages cannot safely store the OpenAI API key, so the published app calls Supabase Edge Functions instead of the local caption server.
+GitHub Pages and Vercel cannot safely store AI API keys in frontend files, so the published app calls Supabase Edge Functions instead of the local caption server.
 
 Supabase functions included:
 
@@ -521,10 +522,11 @@ Deploy steps:
 
 1. Install and log in to the Supabase CLI.
 2. Link this project to Supabase project `tmheeonnhqetjwslmyjf`.
-3. Set the secret:
+3. Set the Gemini secret. Optional OpenAI fallback can stay configured too:
 
 ```powershell
-supabase secrets set OPENAI_API_KEY=your_openai_api_key
+supabase secrets set GEMINI_API_KEY=your_gemini_api_key
+supabase secrets set GEMINI_MODEL=gemini-2.5-flash
 ```
 
 4. Deploy the functions:
