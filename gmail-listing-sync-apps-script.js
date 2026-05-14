@@ -353,7 +353,12 @@ function cleanValue(value) {
 }
 
 function cleanAddress(value) {
-  return cleanValue(value).replace(/\s+/g, " ").replace(/[.,;\s]+$/, "");
+  return cleanValue(value)
+    .replace(/\s+/g, " ")
+    .replace(/^(000|900|999)\s+/, "")
+    .replace(/^(\d{3})\s+(\d{3,6}\s+)/, "$2")
+    .replace(/,\s*,/g, ",")
+    .replace(/[.,;\s]+$/, "");
 }
 
 function cleanAgentName(subject, text) {
