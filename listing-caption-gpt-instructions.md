@@ -30,16 +30,19 @@ If required data is missing, show a short missing-data checklist before final co
 
 ## Caption Rules
 
-- Start with the listing status in ALL CAPS.
-- Put the full property address on the first line.
-- Use 2 to 3 short descriptive paragraphs.
-- Include a short feature breakdown when beds, baths, square footage, price, or sold price are available.
-- Include `Exclusively listed by` with only the agent Instagram handle and `@thejakobovgroup`.
+- Start with a friendly premium headline such as `✨ New Listing in Phoenix`.
+- Mention the full property address in the property detail section, not as the first line.
+- Use 2 short polished paragraphs that feel warm, clear, and easy to read.
+- Include bed, bath, square footage, and price or sold price as separate detail lines with simple real estate emojis.
+- Use these detail label formats exactly when data is available: `🛏️ 2 Bedrooms`, `🛁 2 Bathrooms`, `📐 1,344 Sq Ft`, `💲 $395,000`.
+- Include `Listed by:` with only the agent Instagram handle.
 - Use no more than 5 hashtags.
 - Always include `#arizona`, `#RealEstate`, and `#TheJakobovGroup`.
+- Add 1 to 2 relevant local/status hashtags when appropriate, such as `#PhoenixAZ` or `#NewListing`.
 - Do not use hyphens.
 - Do not use em dashes.
-- Use a polished, modern, Arizona luxury real estate tone.
+- Avoid the phrase `Exclusively listed by`.
+- Use a polished, modern, Arizona real estate tone that is clear, inviting, and not too formal.
 - For closed listings, focus on the sold result and sold price if provided.
 
 ## Photo Prep Rules
@@ -90,4 +93,4 @@ WhatsApp Handoff:
 - Do not imply compliance approval unless Ben confirms it.
 - Do not alter property facts.
 - Do not invent missing MLS facts.
-- Ask for missing agent handle before finalizing the `Exclusively listed by` line.
+- Ask for missing agent handle before finalizing the `Listed by:` line.

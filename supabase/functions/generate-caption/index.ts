@@ -6,7 +6,8 @@ const corsHeaders = {
 
 function cleanCaption(text: string) {
   return String(text || "")
-    .replace(/[\u2014\u2013-]/g, ",")
+    .replace(/[\u2014\u2013]/g, ",")
+    .replace(/-/g, " ")
     .replace(/#[^\s#]+/g, (tag, offset, full) => {
       const tags = full.slice(0, offset).match(/#[^\s#]+/g) || [];
       return tags.length < 5 ? tag : "";
@@ -49,17 +50,27 @@ Required data to review:
 - Canva video link or graphics link
 - Six MLS photo slots
 
-Caption rules:
-- Full property address must be on the first line.
-- Listing status must appear in ALL CAPS near the top.
-- Use 2 to 3 short descriptive paragraphs.
-- Include a short feature breakdown when beds, baths, square footage, price, or sold price are available.
-- Include "Exclusively listed by" with only the agent Instagram handle and @thejakobovgroup.
+Caption style:
+- Use a friendly premium Instagram listing style like:
+  sparkle emoji, status title, city
+  two polished paragraphs
+  location pin line with full address
+  bed, bath, square footage, and price lines with simple real estate emojis
+  Listed by: agent Instagram handle
+  hashtags
+- The first line should be a status headline, for example "✨ New Listing in Phoenix" or "✨ Just Closed in Scottsdale".
+- Mention the full property address in the property detail section, not as the first line.
+- Use 2 short polished paragraphs that feel warm, clear, and easy to read.
+- Include bed, bath, square footage, and price or sold price as separate detail lines when available.
+- Use these detail label formats exactly when data is available: "🛏️ 2 Bedrooms", "🛁 2 Bathrooms", "📐 1,344 Sq Ft", "💲 $395,000".
+- Include "Listed by:" with only the agent Instagram handle.
 - Use no more than 5 hashtags.
 - Always include #arizona #RealEstate #TheJakobovGroup.
+- Add 1 to 2 relevant local/status hashtags when appropriate, such as #PhoenixAZ or #NewListing.
 - Do not use hyphens.
 - Do not use em dashes.
-- Use a polished, modern, Arizona luxury real estate tone.
+- Avoid the phrase "Exclusively listed by".
+- Use a polished, modern, Arizona real estate tone that is clear, inviting, and not too formal.
 - For closed listings, focus on the sold result and sold price if provided.
 - For canceled listings, do not create a posting caption. Say this listing should not be posted.
 

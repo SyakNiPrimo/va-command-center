@@ -480,7 +480,7 @@ The automated generator reviews:
 - Beds, baths, approximate square feet, and MLS description.
 - Branding, headshot, Canva video, and photo prep context.
 
-It returns a caption that follows the Jakobov Group rules: address first, status in all caps, polished Arizona real estate tone, no hyphens or em dashes, no more than 5 hashtags, and `Exclusively listed by` with only the agent Instagram handle and `@thejakobovgroup`.
+It returns a caption that follows the Jakobov Group Instagram style: a friendly emoji headline like `✨ New Listing in Phoenix`, two polished paragraphs, property detail lines with address, beds, baths, square footage, and price, `Listed by:` with only the agent Instagram handle, no hyphens or em dashes, and no more than 5 hashtags.
 
 Manual Custom GPT fallback:
 
