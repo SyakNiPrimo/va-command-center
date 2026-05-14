@@ -2935,6 +2935,7 @@ function getSocialQuickActionOptions() {
     ["ig-link", "Save IG Post Link"],
     ["whatsapp", "Prepare WhatsApp Handoff"],
     ["mark-posted", "Mark Posted"],
+    ["mark-canceled", "Mark Canceled / Do Not Post"],
     ["mark-needs-design", "Mark Needs Design"],
     ["mark-design-done", "Mark Design Done"],
     ["mark-needs-photos", "Mark Needs Photos"],
@@ -3548,6 +3549,18 @@ function handleSocialPostAction(action, post) {
       statusWorkflow: "Completed"
     });
     showToast("Social post marked posted.");
+    return;
+  }
+  if (action === "mark-canceled") {
+    if (!window.confirm("Mark this listing as canceled and not for posting? This will remove it from Ready To Work.")) return;
+    updateSocialPost(post.id, {
+      statusWorkflow: "Canceled",
+      duplicateValidation: post.duplicateValidation || "Canceled listing. Do not post.",
+      posted: "NO",
+      datePosted: "",
+      igPostLink: ""
+    });
+    showToast("Listing marked canceled. It will not be treated as a postable task.");
   }
 }
 function renderVideoTasks() {
