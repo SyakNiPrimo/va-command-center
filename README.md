@@ -466,13 +466,28 @@ Caption server setup:
 
 The OpenAI API key is never stored in frontend files.
 
-Custom Listing GPT:
+Automated Listing GPT style captions:
 
-The Social tab also links to the custom **Listing Caption GPT**:
+The **Generate Caption** action in the Listings page uses the same workflow rules as the custom **Listing Caption GPT**, but runs through the OpenAI API via the local caption server or Supabase Edge Function. This means the app can generate the caption directly without opening ChatGPT.
+
+The automated generator reviews:
+
+- Listing status and full address.
+- Agent name and Instagram handle.
+- MLS number and link.
+- Price or sold price.
+- Beds, baths, approximate square feet, and MLS description.
+- Branding, headshot, Canva video, and photo prep context.
+
+It returns a caption that follows the Jakobov Group rules: address first, status in all caps, polished Arizona real estate tone, no hyphens or em dashes, no more than 5 hashtags, and `Exclusively listed by` with only the agent Instagram handle and `@thejakobovgroup`.
+
+Manual Custom GPT fallback:
+
+The Social tab can still link to the custom **Listing Caption GPT**:
 
 `https://chatgpt.com/g/g-6a0213727ae8819182e88a879a7cfd84-listing-caption-gpt`
 
-Use it when you want ChatGPT's full GPT interface for:
+Use it only when you want ChatGPT's full GPT interface for:
 
 - Listing caption drafts.
 - Instagram photo prep instructions.
@@ -480,6 +495,7 @@ Use it when you want ChatGPT's full GPT interface for:
 
 Each listing row has quick actions:
 
+- **Generate Caption** generates the caption automatically inside the app.
 - **Open Listing GPT** copies a listing-specific prompt and opens the GPT.
 - **Copy GPT Prompt** copies the same prompt without opening a new tab.
 

@@ -33,6 +33,84 @@ function cleanCaption(text) {
     .trim();
 }
 
+function extractSection(text, heading) {
+  const pattern = new RegExp(`${heading}:\\s*([\\s\\S]*?)(?:\\n\\s*(?:Missing Data|Caption|Photo Prep|WhatsApp Handoff):|$)`, "i");
+  return String(text || "").match(pattern)?.[1]?.trim() || "";
+}
+
+function buildListingCaptionPrompt(body) {
+  return `You are the automated Listing Caption GPT inside The Jakobov Group VA Command Center.
+
+Role:
+You help Ben prepare listing Instagram captions, photo prep guidance, and WhatsApp handoff copy for manual phone posting.
+
+Workflow context:
+- The listing task comes from MLS or Gmail listing update emails.
+- Ben still reviews the caption before posting.
+- Instagram posting stays manual.
+- Do not invent missing property facts.
+- Do not imply compliance approval.
+
+Required data to review:
+- Listing status
+- Full property address
+- Agent name
+- Agent Instagram handle
+- MLS number
+- MLS link
+- Price or sold price
+- Bedrooms
+- Bathrooms
+- Approximate square feet
+- MLS description
+- Logo type
+- Agent headshot status
+- Canva video link or graphics link
+- Six MLS photo slots
+
+Caption rules:
+- Full property address must be on the first line.
+- Listing status must appear in ALL CAPS near the top.
+- Use 2 to 3 short descriptive paragraphs.
+- Include a short feature breakdown when beds, baths, square footage, price, or sold price are available.
+- Include "Exclusively listed by" with only the agent Instagram handle and @thejakobovgroup.
+- Use no more than 5 hashtags.
+- Always include #arizona #RealEstate #TheJakobovGroup.
+- Do not use hyphens.
+- Do not use em dashes.
+- Use a polished, modern, Arizona luxury real estate tone.
+- For closed listings, focus on the sold result and sold price if provided.
+- For canceled listings, do not create a posting caption. Say this listing should not be posted.
+
+Photo prep rules:
+- Photo prep is normal image processing only, not generative editing.
+- 1080 x 1350 JPG.
+- Keep the main property photo sharp and unchanged.
+- Add blurred background fill only.
+- Do not alter house details.
+
+Return exactly:
+Missing Data:
+- ...
+
+Caption:
+...
+
+Photo Prep:
+- Living Room:
+- Kitchen:
+- Dining:
+- Bedroom:
+- Bathroom:
+- Exterior Yard or Best Feature:
+
+WhatsApp Handoff:
+...
+
+Listing data:
+${JSON.stringify(body, null, 2)}`;
+}
+
 function localFallback(body) {
   const status = String(body.status || body.listingType || "NEW LISTING").toUpperCase();
   const address = body.propertyAddress || "Property address needed";
@@ -49,7 +127,7 @@ async function generateCaption(body) {
   if (!apiKey) {
     throw new Error("OPENAI_API_KEY is missing. Copy caption_local.env.example to caption_local.env, add OPENAI_API_KEY, then restart the caption server.");
   }
-  const prompt = `Create an Instagram real estate caption using these rules:\n- Status in ALL CAPS\n- Full property address on first line\n- No hyphens or em dashes\n- Max 5 hashtags\n- Always include #arizona #RealEstate #TheJakobovGroup\n- Use only the agent Instagram handle and @thejakobovgroup in the Exclusively listed by line\n- Polished modern Arizona luxury real estate tone\n\nListing data:\n${JSON.stringify(body, null, 2)}`;
+  const prompt = buildListingCaptionPrompt(body);
   const response = await fetch("https://api.openai.com/v1/responses", {
     method: "POST",
     headers: {
@@ -65,7 +143,15 @@ async function generateCaption(body) {
   const data = await response.json();
   if (!response.ok) throw new Error(data.error?.message || "OpenAI API error");
   const text = data.output_text || data.output?.flatMap((item) => item.content || []).map((item) => item.text || "").join("\n") || "";
-  return { caption: cleanCaption(text), fallback: false };
+  const caption = extractSection(text, "Caption") || text;
+  return {
+    caption: cleanCaption(caption),
+    missingData: extractSection(text, "Missing Data"),
+    photoPrep: extractSection(text, "Photo Prep"),
+    whatsappHandoff: extractSection(text, "WhatsApp Handoff"),
+    fullOutput: text.trim(),
+    fallback: false
+  };
 }
 
 function parseTriviaOutput(text, fallback) {
