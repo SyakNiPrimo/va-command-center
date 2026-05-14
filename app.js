@@ -68,6 +68,8 @@ const photoPrepSlots = [
 ];
 const photoPrepFiles = new Map();
 const socialPostFilters = [
+  "Ready To Work",
+  "Needs Review",
   "All",
   "Coming Soon",
   "New Listing",
@@ -221,7 +223,7 @@ const triviaTopicBank = [
     caption: "Arizona winters are a major lifestyle draw.\n\nWhile many places slow down in colder months, Arizona offers mild weather, outdoor activities, and a comfortable rhythm that keeps life moving."
   }
 ];
-let activeSocialPostFilter = "All";
+let activeSocialPostFilter = "Ready To Work";
 let socialPostSearchTerm = "";
 
 const templates = [
@@ -2693,11 +2695,14 @@ function updateSocialPost(id, patch, options = {}) {
 
 function getVisibleSocialPosts() {
   const term = socialPostSearchTerm.trim().toLowerCase();
-  return state.socialPosts.filter((post) => {
+  const posts = state.socialPosts.filter((post) => {
     const status = post.statusWorkflow || "New";
     const type = post.listingType || "";
     const duplicate = String(post.duplicateValidation || "").toLowerCase().includes("duplicate") || status === "Duplicate or Cancelled";
+    const bucket = getSocialPostWorkBucket(post);
 
+    if (activeSocialPostFilter === "Ready To Work" && bucket !== "Ready To Work") return false;
+    if (activeSocialPostFilter === "Needs Review" && bucket !== "Needs Review") return false;
     if (activeSocialPostFilter === "All" && isSocialPostCompleted(post)) return false;
     if (["Coming Soon", "New Listing", "Active", "Pending", "Under Contract", "Closed", "Canceled"].includes(activeSocialPostFilter) && type !== activeSocialPostFilter) return false;
     if (socialWorkflowStatuses.includes(activeSocialPostFilter) && status !== activeSocialPostFilter) return false;
@@ -2706,6 +2711,7 @@ function getVisibleSocialPosts() {
     if (!term) return true;
     return [post.propertyAddress, post.mlsNumber, post.agentName, post.agentInstagramHandle].some((value) => String(value || "").toLowerCase().includes(term));
   });
+  return sortSocialPostsByPriority(posts);
 }
 
 function isDuplicateSocialPost(post) {
@@ -2713,11 +2719,49 @@ function isDuplicateSocialPost(post) {
   return String(post.duplicateValidation || "").toLowerCase().includes("duplicate") || status === "Duplicate or Cancelled";
 }
 
-function getPendingListingPosts() {
-  return (state.socialPosts || []).filter((post) => {
-    const status = String(post.statusWorkflow || "New");
-    return !isSocialPostCompleted(post) && !isDuplicateSocialPost(post) && !["Canceled", "Posted", "Completed"].includes(status);
+function normalizeSocialAddressForDisplay(value) {
+  return String(value || "").trim().replace(/^(000|900|999)\s+/, "");
+}
+
+function getSocialPostReviewReasons(post) {
+  const reasons = [];
+  const status = String(post.statusWorkflow || "").trim();
+  const listingType = String(post.listingType || "").trim();
+  const address = String(post.propertyAddress || "").trim();
+  if (!status) reasons.push("missing workflow status");
+  if (!post.agentName) reasons.push("missing agent");
+  if (!listingType) reasons.push("missing listing type");
+  if (!address) reasons.push("missing address");
+  if (!post.mlsNumber) reasons.push("missing MLS");
+  if (String(post.id || "") === "#VALUE!") reasons.push("bad row ID");
+  if (/^(000|900|999)\s+/.test(address)) reasons.push("address parsing prefix");
+  if (listingType === "Active") reasons.push("active status needs confirmation");
+  return reasons;
+}
+
+function getSocialPostWorkBucket(post) {
+  if (isSocialPostCompleted(post) || ["Posted", "Completed"].includes(post.statusWorkflow)) return "Completed";
+  if (isDuplicateSocialPost(post)) return "Duplicates";
+  if (getSocialPostReviewReasons(post).length) return "Needs Review";
+  return "Ready To Work";
+}
+
+function sortSocialPostsByPriority(posts) {
+  const bucketRank = {
+    "Ready To Work": 0,
+    "Needs Review": 1,
+    Duplicates: 2,
+    Completed: 3
+  };
+  return [...posts].sort((a, b) => {
+    const bucketDiff = (bucketRank[getSocialPostWorkBucket(a)] ?? 9) - (bucketRank[getSocialPostWorkBucket(b)] ?? 9);
+    if (bucketDiff) return bucketDiff;
+    return String(b.dateReceived || "").localeCompare(String(a.dateReceived || ""));
   });
+}
+
+function getPendingListingPosts() {
+  return sortSocialPostsByPriority((state.socialPosts || []).filter((post) => getSocialPostWorkBucket(post) === "Ready To Work"));
 }
 
 function renderPendingListingPosts() {
@@ -2725,9 +2769,9 @@ function renderPendingListingPosts() {
   const list = document.querySelector("#pendingListingPostsList");
   if (!list) return;
   const pendingPosts = getPendingListingPosts();
-  if (count) count.textContent = `${pendingPosts.length} Pending`;
+  if (count) count.textContent = `${pendingPosts.length} Ready`;
   if (!pendingPosts.length) {
-    list.innerHTML = `<div class="empty-state">No pending listing posts right now.</div>`;
+    list.innerHTML = `<div class="empty-state">No ready-to-work listing posts right now. Check Needs Review for messy rows.</div>`;
     return;
   }
   list.innerHTML = pendingPosts.map((post) => {
@@ -2735,7 +2779,7 @@ function renderPendingListingPosts() {
     return `
       <article class="pending-post-row">
         <div>
-          <strong>${escapeHTML(post.propertyAddress || "Address needed")}</strong>
+          <strong>${escapeHTML(normalizeSocialAddressForDisplay(post.propertyAddress) || "Address needed")}</strong>
           <span>${escapeHTML(post.listingType || "Listing")} • ${escapeHTML(post.agentName || "Agent needed")} • MLS ${escapeHTML(post.mlsNumber || "missing")}</span>
         </div>
         <div class="pending-post-meta">
@@ -2756,18 +2800,20 @@ function renderPendingListingPosts() {
 function renderSocialPostSummary() {
   const summary = document.querySelector("#socialPostSummary");
   if (!summary) return;
+  const bucketCount = (bucket) => state.socialPosts.filter((post) => getSocialPostWorkBucket(post) === bucket).length;
   const countByStatus = (status) => state.socialPosts.filter((post) => post.statusWorkflow === status && !isSocialPostCompleted(post)).length;
   const postedCount = state.socialPosts.filter((post) => post.posted === "YES" || post.statusWorkflow === "Posted").length;
   const postedThisWeek = state.socialPosts.filter((post) => post.posted === "YES" && isDateThisWeek(post.datePosted)).length;
   summary.innerHTML = `
+    <article class="metric compact-metric priority-metric"><span>Ready To Work</span><strong>${bucketCount("Ready To Work")}</strong></article>
+    <article class="metric compact-metric"><span>Needs Review</span><strong>${bucketCount("Needs Review")}</strong></article>
+    <article class="metric compact-metric"><span>Duplicates</span><strong>${bucketCount("Duplicates")}</strong></article>
     <article class="metric compact-metric"><span>New</span><strong>${countByStatus("New")}</strong></article>
     <article class="metric compact-metric"><span>Needs Design</span><strong>${countByStatus("Needs Design")}</strong></article>
     <article class="metric compact-metric"><span>Needs Photos</span><strong>${countByStatus("Needs Photos")}</strong></article>
     <article class="metric compact-metric"><span>Photo Prep Ready</span><strong>${countByStatus("Photo Prep Ready")}</strong></article>
     <article class="metric compact-metric"><span>Needs Caption</span><strong>${countByStatus("Needs Caption")}</strong></article>
-    <article class="metric compact-metric"><span>Caption Ready</span><strong>${countByStatus("Caption Ready")}</strong></article>
     <article class="metric compact-metric"><span>Ready To WhatsApp</span><strong>${countByStatus("Ready To Send To WhatsApp")}</strong></article>
-    <article class="metric compact-metric"><span>Posted</span><strong>${postedCount}</strong></article>
     <article class="metric compact-metric"><span>Posted This Week</span><strong>${postedThisWeek}</strong></article>
   `;
 }
@@ -2901,6 +2947,8 @@ function getSocialQuickActionOptions() {
 
 function renderSocialPostTableRow(post) {
   const status = post.statusWorkflow || "New";
+  const bucket = getSocialPostWorkBucket(post);
+  const reviewReasons = getSocialPostReviewReasons(post);
   const listingBranding = getListingBranding(post.price);
   const logoType = post.logoType || listingBranding.logoType;
   const warnings = getAgentWarnings(post);
@@ -2912,8 +2960,10 @@ function renderSocialPostTableRow(post) {
   return `
     <tr class="social-post-table-row status-${socialStatusClass(status)}">
       <td>
-        <strong>${escapeHTML(post.propertyAddress || "Address needed")}</strong>
+        <strong>${escapeHTML(normalizeSocialAddressForDisplay(post.propertyAddress) || "Address needed")}</strong>
         <span>${escapeHTML(post.id || "No ID")} • ${escapeHTML(post.listingType || "Listing")}</span>
+        <span>${escapeHTML(bucket)}</span>
+        ${reviewReasons.length ? `<span class="warning-line">Review: ${escapeHTML(reviewReasons.join(", "))}</span>` : ""}
         ${warnings.length ? `<span class="warning-line">${escapeHTML(warnings.join(". "))}</span>` : ""}
       </td>
       <td>${escapeHTML(post.agentName || "Agent needed")}</td>

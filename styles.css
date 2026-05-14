@@ -2642,6 +2642,15 @@ label {
   font-size: 1.18rem;
 }
 
+.social-summary .priority-metric {
+  border-color: rgba(200, 173, 95, 0.55);
+  background: #fff8df;
+}
+
+.social-summary .priority-metric strong {
+  color: #7a5b12;
+}
+
 .tracker-tools {
   grid-template-columns: minmax(180px, 320px) minmax(230px, 320px);
   align-items: start;
